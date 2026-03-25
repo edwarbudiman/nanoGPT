@@ -4,21 +4,23 @@ Evaluate GPT on the full ROCStories test set (19,633 stories) and report average
 Identical PPL calculation to eval.py, but loads the 19,633-story test set
 from HuggingFace (mintujupally/ROCStories test.txt) — one story per line.
 
+On first run, downloads test.txt and caches normalized stories locally at
+data/rocstories/test_stories.txt. Subsequent runs load from cache.
+
 Usage:
     python eval_rocstories.py --init_from=resume --out_dir=out-rocstories
     python eval_rocstories.py --init_from=resume --out_dir=out-rocstories --device=cpu --compile=False
 """
 
-import json
 import math
 import os
 import pickle
 import re
+import sys
 from contextlib import nullcontext
 
 import torch
 import tiktoken
-from huggingface_hub import snapshot_download
 
 from model import GPT, GPTConfig
 
@@ -39,6 +41,7 @@ exec(open('configurator.py').read())  # allows overrides from CLI / config file
 # -----------------------------------------------------------------------------
 
 HF_REPO_ID = "mintujupally/ROCStories"
+CACHE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "rocstories", "test_stories.txt")
 
 
 def split_into_sentences(text):
@@ -66,26 +69,48 @@ def load_stories_from_hf_text(path):
     return stories
 
 
-# Download test.txt from HuggingFace (same as prepare.py)
-print(f"downloading dataset files from Hugging Face Hub: {HF_REPO_ID}")
-local_repo_dir = snapshot_download(
-    repo_id=HF_REPO_ID,
-    repo_type="dataset",
-    allow_patterns=["test.txt"],
-)
+def load_stories_from_cache(path):
+    stories = []
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                stories.append(line)
+    return stories
 
-test_txt = os.path.join(local_repo_dir, "test.txt")
-if not os.path.exists(test_txt):
-    raise FileNotFoundError("Expected test.txt in Hugging Face dataset repo.")
 
-paragraphs = load_stories_from_hf_text(test_txt)
+# Load test stories: use local cache if available, otherwise download from HF
+if os.path.exists(CACHE_PATH):
+    print(f"Loading cached test stories from {CACHE_PATH}")
+    paragraphs = load_stories_from_cache(CACHE_PATH)
+else:
+    from huggingface_hub import snapshot_download
+    print(f"Downloading dataset from Hugging Face Hub: {HF_REPO_ID}")
+    local_repo_dir = snapshot_download(
+        repo_id=HF_REPO_ID,
+        repo_type="dataset",
+        allow_patterns=["test.txt"],
+    )
+    test_txt = os.path.join(local_repo_dir, "test.txt")
+    if not os.path.exists(test_txt):
+        raise FileNotFoundError("Expected test.txt in Hugging Face dataset repo.")
+
+    paragraphs = load_stories_from_hf_text(test_txt)
+
+    # Cache locally for future runs
+    os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
+    with open(CACHE_PATH, "w", encoding="utf-8") as f:
+        for story in paragraphs:
+            f.write(story + "\n")
+    print(f"Cached {len(paragraphs)} stories to {CACHE_PATH}")
+
 if max_paragraphs is not None and max_paragraphs >= 0:
     paragraphs = paragraphs[:max_paragraphs]
 
 if len(paragraphs) == 0:
-    raise ValueError(f"No stories found in {test_txt}")
+    raise ValueError("No stories found")
 
-print(f"Loaded {len(paragraphs)} stories from {test_txt}")
+print(f"Loaded {len(paragraphs)} stories")
 for i, p in enumerate(paragraphs[:max(0, int(print_first_n))]):
     preview = p.replace('\n', ' ')[:120]
     print(f"[preview {i}] {preview}{'...' if len(p) > 120 else ''}")
@@ -145,37 +170,64 @@ total_tokens = 0
 used_paragraphs = 0
 skipped_short = 0
 block_size = model.config.block_size
+eval_batch_size = 64  # stories per forward pass (~50-80 tokens each, very light on VRAM)
+
+# Pre-tokenize all stories
+print("Tokenizing all stories...")
+all_token_ids = []
+for para in paragraphs:
+    token_ids = encode(para)
+    if len(token_ids) < 2:
+        skipped_short += 1
+        continue
+    # Truncate to block_size+1 if needed (stories are short, unlikely)
+    all_token_ids.append(token_ids[:block_size + 1])
+    used_paragraphs += 1
+
+n_stories = len(all_token_ids)
+print(f"Evaluating {n_stories} stories in batches of {eval_batch_size}...")
 
 with torch.no_grad():
     with ctx:
-        for para in paragraphs:
-            token_ids = encode(para)
-            # Need at least two tokens to define next-token prediction.
-            if len(token_ids) < 2:
-                skipped_short += 1
-                continue
+        for batch_start in range(0, n_stories, eval_batch_size):
+            batch = all_token_ids[batch_start:batch_start + eval_batch_size]
 
-            pos = 0
-            para_pred_tokens = len(token_ids) - 1
-            while pos < para_pred_tokens:
-                # Build a contiguous chunk and its shifted targets.
-                inp = token_ids[pos: pos + block_size]
-                tgt = token_ids[pos + 1: pos + 1 + block_size]
-                if len(tgt) == 0:
-                    break
-                if len(inp) != len(tgt):
-                    inp = inp[:len(tgt)]
+            # Pad all stories in batch to same length (pad targets with -1 to ignore)
+            max_len = max(len(t) for t in batch)
+            xs = []
+            ys = []
+            lengths = []
 
-                x = torch.tensor(inp, dtype=torch.long, device=device)[None, :]
-                y = torch.tensor(tgt, dtype=torch.long, device=device)[None, :]
-                _, loss = model(x, y)  # mean CE over chunk tokens
-
+            for token_ids in batch:
+                inp = token_ids[:-1]
+                tgt = token_ids[1:]
                 n_tok = len(tgt)
-                total_nll += loss.item() * n_tok
-                total_tokens += n_tok
-                pos += n_tok
+                pad_len = (max_len - 1) - n_tok
+                if pad_len > 0:
+                    inp = inp + [0] * pad_len
+                    tgt = tgt + [-1] * pad_len
+                xs.append(inp)
+                ys.append(tgt)
+                lengths.append(n_tok)
 
-            used_paragraphs += 1
+            x = torch.tensor(xs, dtype=torch.long, device=device)
+            y = torch.tensor(ys, dtype=torch.long, device=device)
+
+            logits, _ = model(x, y)
+
+            # Sum loss only over real tokens (ignore_index=-1 skips padding)
+            loss_sum = torch.nn.functional.cross_entropy(
+                logits.view(-1, logits.size(-1)), y.view(-1),
+                ignore_index=-1, reduction='sum'
+            )
+
+            total_nll += loss_sum.item()
+            total_tokens += sum(lengths)
+
+            done = min(batch_start + eval_batch_size, n_stories)
+            if done % (eval_batch_size * 20) == 0 or done == n_stories:
+                running_ppl = math.exp(total_nll / total_tokens)
+                print(f"  [{done}/{n_stories}] running ppl: {running_ppl:.2f}")
 
 if total_tokens == 0:
     raise ValueError("No valid tokens to evaluate. Check your input text.")
