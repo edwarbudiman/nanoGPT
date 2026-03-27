@@ -47,7 +47,7 @@ wandb_run_name = 'gpt2' # 'run' + str(time.time())
 dataset = 'openwebtext'
 gradient_accumulation_steps = 1
 batch_size = 64
-block_size = 256 # context of up to 256 previous characters
+block_size = 256
 # model
 n_layer = 12
 n_head = 12
@@ -110,13 +110,6 @@ device_type = 'cuda' if 'cuda' in device else 'cpu' # for later use in torch.aut
 # note: float16 data type will automatically use a GradScaler
 ptdtype = {'float32': torch.float32, 'bfloat16': torch.bfloat16, 'float16': torch.float16}[dtype]
 ctx = nullcontext() if device_type == 'cpu' else torch.amp.autocast(device_type=device_type, dtype=ptdtype)
-
-# load per-token importance weights (PMI-based) if available
-token_weights_path = os.path.join('data', dataset, 'token_weights.pt')
-token_weights = None
-if os.path.exists(token_weights_path):
-    token_weights = torch.load(token_weights_path, map_location=device, weights_only=True)
-    print(f"loaded token weights from {token_weights_path} (shape {token_weights.shape})")
 
 # poor man's data loader
 data_dir = os.path.join('data', dataset)
@@ -228,7 +221,7 @@ def estimate_loss():
         for k in range(eval_iters):
             X, Y = get_batch(split)
             with ctx:
-                logits, loss = model(X, Y, token_weights=token_weights)
+                logits, loss = model(X, Y)
             losses[k] = loss.item()
         out[split] = losses.mean()
     model.train()
@@ -304,7 +297,7 @@ while True:
             # looking at the source of that context manager, it just toggles this variable
             model.require_backward_grad_sync = (micro_step == gradient_accumulation_steps - 1)
         with ctx:
-            logits, loss = model(X, Y, token_weights=token_weights)
+            logits, loss = model(X, Y)
             loss = loss / gradient_accumulation_steps # scale the loss to account for gradient accumulation
         # immediately async prefetch next batch while model is doing the forward pass on the GPU
         X, Y = get_batch('train')

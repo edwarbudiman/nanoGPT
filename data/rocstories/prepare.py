@@ -15,8 +15,46 @@ def split_into_sentences(text):
     return [p.strip() for p in parts if p.strip()]
 
 
+def normalize_text(text):
+    """Fix known artifacts in ROCStories text before sentence splitting."""
+    # --- Part 1: Hardcoded artifact fixes (typos where period splits a word) ---
+    artifact_map = {
+        "height.s": "heights",
+        "coming.q": "coming",
+        "day.s": "days",
+        "hair.l": "hair",
+        "ingredient.s": "ingredients",
+        "highway.q": "highway",
+        "i.t": "it",
+        "classed.d": "classed",
+        "basic.s": "basics",
+        "expected.aquarium": "expected",
+        "flavor.s": "flavors",
+        "sub!tired": "submitted",
+        "friend.s": "friends",
+        "though.q": "though",
+        ', Hooray!"': ', "Hooray!"',
+        ".'.": ".",
+    }
+    for bad, good in artifact_map.items():
+        text = text.replace(bad, good)
+
+    # --- Part 4b: Fix stray backslash before punctuation (e.g. !\ or .\) ---
+    text = re.sub(r"([.!?])\\+", r"\1", text)
+
+    # --- Part 5: Fix stray trailing characters after sentence punctuation ---
+    # Remove backticks, brackets, or lone letters stuck to punctuation
+    text = re.sub(r"([.!?])[`\[\]]+", r"\1", text)
+    # Remove trailing non-alpha junk at end of string (e.g. "Prize" stuck to "!")
+    text = re.sub(r"([.!?])[A-Z][a-z]+$", r"\1", text)
+
+    return text
+
+
 def normalize_story(raw_story):
-    sentences = split_into_sentences(raw_story)
+    text = normalize_text(raw_story)
+    sentences = split_into_sentences(text)
+    
     if len(sentences) != 5:
         return None
     return " ".join(sentences)
@@ -24,14 +62,19 @@ def normalize_story(raw_story):
 
 def load_stories_from_hf_text(path):
     stories = []
+    total_lines = 0
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
+            total_lines += 1
             line = line.strip()
             if not line:
+                print(f"skipping empty line {total_lines} in {path}")
                 continue
             story = normalize_story(line)
             if story is not None:
+                print(f"skipping NONE line {total_lines} in {path}")
                 stories.append(story)
+    print(f"loaded {total_lines:,} raw lines from {path}")
     return stories
 
 

@@ -34,104 +34,142 @@ import time
 
 BASE_CONFIG = "config/train_rocstories.py"
 
+# BEST_CONFIGS = [
+#     {
+#         "name": "BEST r2_lr6e4_do015",
+#         "out_dir": "out-sweep/r2_lr6e4_do015",
+#         "dropout": 0.15,
+#         "learning_rate": 6e-4,
+#         "min_lr": 6e-5,
+#         "max_iters": 5000,
+#         "lr_decay_iters": 5000,
+#         "eval_interval": 100,
+#     },
+#     {
+#         "name": "BEST r2_wd_02",
+#         "out_dir": "out-sweep/r2_wd_02",
+#         "dropout": 0.2,
+#         "learning_rate": 6e-4,
+#         "min_lr": 6e-5,
+#         "weight_decay": 0.2,
+#         "max_iters": 5000,
+#         "lr_decay_iters": 5000,
+#         "eval_interval": 100,
+#     },
+#     {
+#         "name": "BEST dropout_0.2_baseline",
+#         "out_dir": "out-sweep/dropout_0.2_baseline",
+#         "dropout": 0.2,
+#         "max_iters": 5000,
+#     },
+#     {
+#         "name": "BEST block_512",
+#         "out_dir": "out-sweep/block_512",
+#         "dropout": 0.2,
+#         "block_size": 512,
+#         "batch_size": 32,  # halve batch to keep memory similar
+#         "max_iters": 5000,
+#     },
+#     {
+#         "name": "TRY minimum n",
+#         "out_dir": "out-sweep/min_n",
+#         "dropout": 0.2,
+#         "block_size": 512,
+#         "batch_size": 32,  # halve batch to keep memory similar
+#         "max_iters": 5000,
+#         "n_layer": 4,
+#         "n_head": 4,
+#     },
+#     {
+#         "name": "BEST minimum n2",
+#         "out_dir": "out-sweep/best_min_n",
+#         "dropout": 0.2,
+#         "block_size": 512,
+#         "batch_size": 32,  # halve batch to keep memory similar
+#         "max_iters": 5000,
+#         "n_layer": 4,
+#         "n_head": 4,
+#         "n_embd": 256,
+#     },
+#     {
+#         "name": "BEST minimum n2 more iteration",
+#         "out_dir": "out-sweep/best_min_n",
+#         "dropout": 0.2,
+#         "block_size": 512,
+#         "batch_size": 32,  # halve batch to keep memory similar
+#         "max_iters": 10000,
+#         "n_layer": 4,
+#         "n_head": 4,
+#         "n_embd": 256,
+#     },
+# ]
 SWEEP_CONFIGS = [
-    # --- Dropout sweep ---
     {
-        "name": "dropout_0.0",
-        "out_dir": "out-sweep/dropout_0.0",
-        "dropout": 0.0,
+        "name": "BEST r2_lr6e4_do015",
+        "out_dir": "out-sweep/r2_lr6e4_do015",
+        "dropout": 0.15,
+        "learning_rate": 6e-4,
+        "min_lr": 6e-5,
         "max_iters": 5000,
+        "lr_decay_iters": 5000,
+        "eval_interval": 100,
     },
     {
-        "name": "dropout_0.1",
-        "out_dir": "out-sweep/dropout_0.1",
-        "dropout": 0.1,
+        "name": "BEST r2_wd_02",
+        "out_dir": "out-sweep/r2_wd_02",
+        "dropout": 0.2,
+        "learning_rate": 6e-4,
+        "min_lr": 6e-5,
+        "weight_decay": 0.2,
         "max_iters": 5000,
+        "lr_decay_iters": 5000,
+        "eval_interval": 100,
     },
     {
-        "name": "dropout_0.2_baseline",
+        "name": "BEST dropout_0.2_baseline",
         "out_dir": "out-sweep/dropout_0.2_baseline",
         "dropout": 0.2,
         "max_iters": 5000,
     },
     {
-        "name": "dropout_0.3",
-        "out_dir": "out-sweep/dropout_0.3",
-        "dropout": 0.3,
-        "max_iters": 5000,
-    },
-    # --- Learning rate sweep (with dropout=0.2) ---
-    {
-        "name": "lr_6e-4",
-        "out_dir": "out-sweep/lr_6e-4",
-        "dropout": 0.2,
-        "learning_rate": 6e-4,
-        "min_lr": 6e-5,
-        "max_iters": 5000,
-        "lr_decay_iters": 5000,
-    },
-    {
-        "name": "lr_2e-3",
-        "out_dir": "out-sweep/lr_2e-3",
-        "dropout": 0.2,
-        "learning_rate": 2e-3,
-        "min_lr": 2e-4,
-        "max_iters": 5000,
-        "lr_decay_iters": 5000,
-    },
-    # --- More iterations (to see if we need longer training) ---
-    {
-        "name": "iters_10000",
-        "out_dir": "out-sweep/iters_10000",
-        "dropout": 0.2,
-        "max_iters": 10000,
-        "lr_decay_iters": 10000,
-    },
-    {
-        "name": "iters_15000",
-        "out_dir": "out-sweep/iters_15000",
-        "dropout": 0.2,
-        "max_iters": 15000,
-        "lr_decay_iters": 15000,
-    },
-    # --- Block size (more context) ---
-    {
-        "name": "block_512",
+        "name": "BEST block_512",
         "out_dir": "out-sweep/block_512",
         "dropout": 0.2,
         "block_size": 512,
         "batch_size": 32,  # halve batch to keep memory similar
         "max_iters": 5000,
     },
-    # --- Batch size ---
     {
-        "name": "batch_128_accum",
-        "out_dir": "out-sweep/batch_128_accum",
+        "name": "TRY minimum n",
+        "out_dir": "out-sweep/min_n",
         "dropout": 0.2,
-        "batch_size": 64,
-        "gradient_accumulation_steps": 2,  # effective batch = 128
-        "max_iters": 5000,
-    },
-    # --- Combined best guesses ---
-    {
-        "name": "combo_a",
-        "out_dir": "out-sweep/combo_a",
-        "dropout": 0.1,
-        "learning_rate": 1e-3,
-        "min_lr": 1e-4,
-        "max_iters": 10000,
-        "lr_decay_iters": 10000,
         "block_size": 512,
-        "batch_size": 32,
+        "batch_size": 32,  # halve batch to keep memory similar
+        "max_iters": 5000,
+        "n_layer": 4,
+        "n_head": 4,
     },
     {
-        "name": "combo_b",
-        "out_dir": "out-sweep/combo_b",
-        "dropout": 0.15,
-        "learning_rate": 6e-4,
-        "min_lr": 6e-5,
+        "name": "BEST minimum n2",
+        "out_dir": "out-sweep/best_min_n",
+        "dropout": 0.2,
+        "block_size": 512,
+        "batch_size": 32,  # halve batch to keep memory similar
+        "max_iters": 5000,
+        "n_layer": 4,
+        "n_head": 4,
+        "n_embd": 256,
+    },
+    {
+        "name": "BEST minimum n2 more iteration",
+        "out_dir": "out-sweep/best_min_n",
+        "dropout": 0.2,
+        "block_size": 512,
+        "batch_size": 32,  # halve batch to keep memory similar
         "max_iters": 10000,
-        "lr_decay_iters": 10000,
+        "n_layer": 4,
+        "n_head": 4,
+        "n_embd": 256,
     },
 ]
 
@@ -221,7 +259,7 @@ def run_eval(config, gpu_id=0):
                 avg_loss = float(line.split(":")[-1].strip())
             except ValueError:
                 pass
-        if "perplexity" in line and ":" in line:
+        if line.strip().startswith("ppl") and ":" in line:
             try:
                 ppl = float(line.split(":")[-1].strip())
             except ValueError:
@@ -231,111 +269,43 @@ def run_eval(config, gpu_id=0):
     return avg_loss, ppl
 
 
-def run_parallel(configs, max_parallel, gpu_ids, eval_only=False):
-    """Run training jobs with parallelism, then evaluate all."""
-    results = []
+def _make_csv_row(config, duration, avg_loss, ppl):
+    """Build a CSV row dict from a completed run."""
+    return {
+        "name": config["name"],
+        "ppl": ppl,
+        "avg_loss": avg_loss,
+        "duration_s": duration,
+        "dropout": config.get("dropout", ""),
+        "learning_rate": config.get("learning_rate", ""),
+        "max_iters": config.get("max_iters", ""),
+        "block_size": config.get("block_size", ""),
+        "batch_size": config.get("batch_size", ""),
+        "gradient_accumulation_steps": config.get("gradient_accumulation_steps", ""),
+        "out_dir": config["out_dir"],
+        "pass": "YES" if ppl is not None and ppl < 25.0 else "NO",
+    }
 
-    if not eval_only:
-        # Run training jobs
-        active = {}  # gpu_id -> (process, config, start_time, log_file_handle)
-        pending = list(enumerate(configs))
-        available_gpus = list(gpu_ids[:max_parallel])
 
-        while pending or active:
-            # Launch new jobs on available GPUs
-            while pending and available_gpus:
-                idx, config = pending.pop(0)
-                gpu_id = available_gpus.pop(0)
-                name = config["name"]
-                out_dir = config["out_dir"]
-                os.makedirs(out_dir, exist_ok=True)
-
-                cmd = build_train_cmd(config, gpu_id)
-                log_path = os.path.join(out_dir, "train.log")
-
-                print(f"\n[START] {name} on GPU {gpu_id}")
-                print(f"  cmd: {' '.join(cmd)}")
-
-                env = os.environ.copy()
-                env["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
-
-                log_f = open(log_path, "w")
-                proc = subprocess.Popen(cmd, stdout=log_f, stderr=subprocess.STDOUT, env=env)
-                active[gpu_id] = (proc, config, time.time(), log_f)
-
-            # Check for completed jobs
-            for gpu_id in list(active.keys()):
-                proc, config, start_time, log_f = active[gpu_id]
-                ret = proc.poll()
-                if ret is not None:
-                    duration = time.time() - start_time
-                    log_f.close()
-                    status = "OK" if ret == 0 else f"FAIL(rc={ret})"
-                    print(f"[{status}] {config['name']} — {duration:.0f}s (GPU {gpu_id})")
-                    results.append({
-                        "name": config["name"],
-                        "returncode": ret,
-                        "duration": duration,
-                        "config": config,
-                    })
-                    del active[gpu_id]
-                    available_gpus.append(gpu_id)
-
-            if active:
-                time.sleep(5)
-    else:
-        # eval_only mode: just create placeholder results
-        for config in configs:
-            results.append({
-                "name": config["name"],
-                "returncode": 0,
-                "duration": 0,
-                "config": config,
-            })
-
-    # Evaluate all checkpoints
-    print(f"\n{'='*60}")
-    print("EVALUATING ALL CHECKPOINTS")
-    print(f"{'='*60}")
-
-    csv_rows = []
-    for r in results:
-        config = r["config"]
-        avg_loss, ppl = run_eval(config, gpu_ids[0])
-        r["avg_loss"] = avg_loss
-        r["ppl"] = ppl
-
-        csv_rows.append({
-            "name": config["name"],
-            "ppl": ppl,
-            "avg_loss": avg_loss,
-            "duration_s": r.get("duration", 0),
-            "dropout": config.get("dropout", ""),
-            "learning_rate": config.get("learning_rate", ""),
-            "max_iters": config.get("max_iters", ""),
-            "block_size": config.get("block_size", ""),
-            "batch_size": config.get("batch_size", ""),
-            "gradient_accumulation_steps": config.get("gradient_accumulation_steps", ""),
-            "out_dir": config["out_dir"],
-            "pass": "YES" if ppl is not None and ppl < 25.0 else "NO",
-        })
-
-    # Write results CSV
-    csv_path = "out-sweep/sweep_results.csv"
-    os.makedirs("out-sweep", exist_ok=True)
+def _write_csv(csv_rows, csv_path):
+    """Write (or overwrite) the results CSV."""
+    if not csv_rows:
+        return
+    os.makedirs(os.path.dirname(csv_path), exist_ok=True)
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=csv_rows[0].keys())
         writer.writeheader()
         writer.writerows(csv_rows)
 
-    # Print summary
+
+def _print_summary(csv_rows, csv_path):
+    """Print a ranked summary table."""
     print(f"\n{'='*60}")
-    print("SWEEP RESULTS SUMMARY")
+    print("SWEEP RESULTS SO FAR")
     print(f"{'='*60}")
     print(f"{'Name':<25} {'PPL':>10} {'Loss':>10} {'Time':>8} {'Pass?':>6}")
     print("-" * 65)
 
-    # Sort by PPL (best first)
     sorted_rows = sorted(csv_rows, key=lambda r: r["ppl"] if r["ppl"] is not None else float("inf"))
     for row in sorted_rows:
         ppl_str = f"{row['ppl']:.4f}" if row["ppl"] is not None else "N/A"
@@ -345,17 +315,88 @@ def run_parallel(configs, max_parallel, gpu_ids, eval_only=False):
 
     print(f"\nResults saved to: {csv_path}")
 
-    # Identify best
     best = sorted_rows[0] if sorted_rows and sorted_rows[0]["ppl"] is not None else None
     if best:
-        print(f"\nBest config: {best['name']} — PPL={best['ppl']:.4f}")
+        print(f"\nBest so far: {best['name']} — PPL={best['ppl']:.4f}")
         if best["ppl"] < 25.0:
             print(f"  PASSES the PPL < 25.0 target!")
         else:
             print(f"  Still above target. Gap: {best['ppl'] - 25.0:.4f}")
-            print(f"  Consider: more iters, lower dropout, larger block_size, or architecture changes.")
 
-    return sorted_rows
+
+def run_parallel(configs, max_parallel, gpu_ids, eval_only=False):
+    """Run training jobs with parallelism. Evaluate each job as soon as it finishes.
+
+    Multiple jobs can share the same GPU (slot-based parallelism).
+    Jobs are assigned to GPUs round-robin across the provided gpu_ids.
+    """
+    csv_rows = []
+    csv_path = "out-sweep/sweep_results.csv"
+
+    if not eval_only:
+        active = {}  # slot_id -> (process, config, start_time, log_file_handle, gpu_id)
+        pending = list(enumerate(configs))
+        available_slots = list(range(max_parallel))
+
+        while pending or active:
+            # Launch new jobs on available slots
+            while pending and available_slots:
+                idx, config = pending.pop(0)
+                slot_id = available_slots.pop(0)
+                gpu_id = gpu_ids[slot_id % len(gpu_ids)]
+                name = config["name"]
+                out_dir = config["out_dir"]
+                os.makedirs(out_dir, exist_ok=True)
+
+                cmd = build_train_cmd(config, gpu_id)
+                log_path = os.path.join(out_dir, "train.log")
+
+                print(f"\n[START] {name} (slot {slot_id}, GPU {gpu_id})")
+                print(f"  cmd: {' '.join(cmd)}")
+
+                env = os.environ.copy()
+                env["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+
+                log_f = open(log_path, "w")
+                proc = subprocess.Popen(cmd, stdout=log_f, stderr=subprocess.STDOUT, env=env)
+                active[slot_id] = (proc, config, time.time(), log_f, gpu_id)
+
+            # Check for completed jobs
+            for slot_id in list(active.keys()):
+                proc, config, start_time, log_f, gpu_id = active[slot_id]
+                ret = proc.poll()
+                if ret is not None:
+                    duration = time.time() - start_time
+                    log_f.close()
+                    status = "OK" if ret == 0 else f"FAIL(rc={ret})"
+                    print(f"\n[{status}] {config['name']} — {duration:.0f}s (slot {slot_id}, GPU {gpu_id})")
+
+                    # Evaluate immediately
+                    avg_loss, ppl = run_eval(config, gpu_id)
+                    csv_rows.append(_make_csv_row(config, duration, avg_loss, ppl))
+                    _write_csv(csv_rows, csv_path)
+                    _print_summary(csv_rows, csv_path)
+
+                    del active[slot_id]
+                    available_slots.append(slot_id)
+
+            if active:
+                time.sleep(5)
+    else:
+        # eval_only mode: evaluate all existing checkpoints
+        for config in configs:
+            avg_loss, ppl = run_eval(config, gpu_ids[0])
+            csv_rows.append(_make_csv_row(config, 0, avg_loss, ppl))
+            _write_csv(csv_rows, csv_path)
+            _print_summary(csv_rows, csv_path)
+
+    # Final summary
+    print(f"\n{'='*60}")
+    print("ALL DONE")
+    print(f"{'='*60}")
+    _print_summary(csv_rows, csv_path)
+
+    return csv_rows
 
 
 if __name__ == "__main__":
