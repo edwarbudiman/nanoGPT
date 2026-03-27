@@ -110,8 +110,8 @@ SWEEP_CONFIGS = [
         "dropout": 0.15,
         "learning_rate": 6e-4,
         "min_lr": 6e-5,
-        "max_iters": 15000,
-        "lr_decay_iters": 15000,
+        "max_iters": 50000,
+        "lr_decay_iters": 50000,
         "eval_interval": 100,
     },
     {
@@ -121,7 +121,7 @@ SWEEP_CONFIGS = [
         "learning_rate": 6e-4,
         "min_lr": 6e-5,
         "weight_decay": 0.2,
-        "max_iters": 15000,
+        "max_iters": 50000,
         "lr_decay_iters": 5000,
         "eval_interval": 100,
     },
@@ -129,7 +129,7 @@ SWEEP_CONFIGS = [
         "name": "BEST dropout_0.2_baseline",
         "out_dir": "out-sweep/dropout_0.2_baseline",
         "dropout": 0.2,
-        "max_iters": 15000,
+        "max_iters": 50000,
         "lr_decay_iters": 5000,
     },
     {
@@ -138,7 +138,7 @@ SWEEP_CONFIGS = [
         "dropout": 0.2,
         "block_size": 512,
         "batch_size": 32,  # halve batch to keep memory similar
-        "max_iters": 15000,
+        "max_iters": 50000,
         "lr_decay_iters": 5000,
     },
     {
@@ -147,7 +147,7 @@ SWEEP_CONFIGS = [
         "dropout": 0.2,
         "block_size": 512,
         "batch_size": 32,  # halve batch to keep memory similar
-        "max_iters": 15000,
+        "max_iters": 50000,
         "lr_decay_iters": 5000,
         "n_layer": 4,
         "n_head": 4,
@@ -158,7 +158,7 @@ SWEEP_CONFIGS = [
         "dropout": 0.2,
         "block_size": 512,
         "batch_size": 32,  # halve batch to keep memory similar
-        "max_iters": 15000,
+        "max_iters": 50000,
         "lr_decay_iters": 5000,
         "n_layer": 4,
         "n_head": 4,
@@ -170,7 +170,7 @@ SWEEP_CONFIGS = [
         "dropout": 0.2,
         "block_size": 512,
         "batch_size": 32,  # halve batch to keep memory similar
-        "max_iters": 15000,
+        "max_iters": 50000,
         "lr_decay_iters": 5000,
         "n_layer": 4,
         "n_head": 4,
