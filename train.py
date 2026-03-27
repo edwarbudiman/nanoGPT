@@ -76,6 +76,7 @@ compile = True # use PyTorch 2.0 to compile the model to be faster
 config_keys = [k for k,v in globals().items() if not k.startswith('_') and isinstance(v, (int, float, bool, str))]
 exec(open('configurator.py').read()) # overrides from command line or config file
 config = {k: globals()[k] for k in config_keys} # will be useful for logging
+print(f"Training config: { {k: config[k] for k in ['n_layer', 'n_head', 'n_embd', 'block_size', 'dropout', 'learning_rate', 'max_iters', 'lr_decay_iters', 'out_dir']} }")
 # -----------------------------------------------------------------------------
 
 # various inits, derived attributes, I/O setup
