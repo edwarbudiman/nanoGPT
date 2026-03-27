@@ -113,6 +113,7 @@ SWEEP_CONFIGS = [
         "max_iters": 50000,
         "lr_decay_iters": 50000,
         "eval_interval": 100,
+        "warmup_iters": 1000,
     },
     {
         "name": "BEST r2_wd_02",
@@ -124,6 +125,7 @@ SWEEP_CONFIGS = [
         "max_iters": 50000,
         "lr_decay_iters": 50000,
         "eval_interval": 100,
+        "warmup_iters": 1000,
     },
     {
         "name": "BEST dropout_0.2_baseline",
@@ -131,6 +133,7 @@ SWEEP_CONFIGS = [
         "dropout": 0.2,
         "max_iters": 50000,
         "lr_decay_iters": 50000,
+        "warmup_iters": 1000,
     },
     {
         "name": "BEST block_512",
@@ -140,6 +143,7 @@ SWEEP_CONFIGS = [
         "batch_size": 32,  # halve batch to keep memory similar
         "max_iters": 50000,
         "lr_decay_iters": 50000,
+        "warmup_iters": 1000,
     },
     {
         "name": "TRY minimum n",
@@ -151,6 +155,7 @@ SWEEP_CONFIGS = [
         "lr_decay_iters": 50000,
         "n_layer": 4,
         "n_head": 4,
+        "warmup_iters": 1000,
     },
     {
         "name": "BEST minimum n2",
@@ -163,6 +168,7 @@ SWEEP_CONFIGS = [
         "n_layer": 4,
         "n_head": 4,
         "n_embd": 256,
+        "warmup_iters": 1000,
     },
     {
         "name": "BEST minimum n2 more iteration",
@@ -175,6 +181,7 @@ SWEEP_CONFIGS = [
         "n_layer": 4,
         "n_head": 4,
         "n_embd": 256,
+        "warmup_iters": 1000,
     },
 ]
 
