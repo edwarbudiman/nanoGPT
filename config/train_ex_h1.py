@@ -38,7 +38,7 @@ block_size = 256
 
 # Training settings - Regularization focused
 learning_rate = 5e-4  # Lower LR for smoother convergence
-max_iters = 8000  # Moderate training length
+max_iters = 4000  # Moderate training length
 weight_decay = 2e-1  # Stronger weight decay
 beta1 = 0.9
 beta2 = 0.99
@@ -46,7 +46,7 @@ grad_clip = 1.0
 
 decay_lr = True
 warmup_iters = 300
-lr_decay_iters = 8000
+lr_decay_iters = 4000
 min_lr = 5e-5
 
 # GPU settings
