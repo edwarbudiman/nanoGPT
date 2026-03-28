@@ -2,8 +2,8 @@
   "dataset": "mintujupally/ROCStories",
   "num_train_stories": 78528,
   "num_val_stories": 19633,
-  "train_tokens": 4189667,
-  "val_tokens": 1047242,
+  "train_tokens": 4111140,
+  "val_tokens": 1027610,
   "vocab_size": 50257,
   "separator": "\n\n",
   "tokenizer": "gpt2 (tiktoken)"
