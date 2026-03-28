@@ -1,4 +1,8 @@
-
+git clone https://github.com/edwarbudiman/nanoGPT.git
+cd nanoGPT
+git fetch origin c1
+git checkout c1
+pip install tiktoken huggingface_hub datasets
 # nanoGPT
 
 ![nanoGPT](assets/nanogpt.jpg)
