@@ -14,6 +14,10 @@ $ torchrun --nproc_per_node=8 --nnodes=2 --node_rank=0 --master_addr=123.456.123
 - Run on the worker node:
 $ torchrun --nproc_per_node=8 --nnodes=2 --node_rank=1 --master_addr=123.456.123.456 --master_port=1234 train.py
 (If your cluster does not have Infiniband interconnect prepend NCCL_IB_DISABLE=1)
+
+EARLY STOPPING: Set --early_stop_val_loss=3.2 to stop when val loss < 3.2
+ADAPTIVE EVAL: Set --early_stop_threshold=3.3 and --high_freq_eval_interval=100
+               to eval every 100 steps once val loss < 3.3
 """
 
 import os
@@ -66,6 +70,11 @@ decay_lr = True # whether to decay the learning rate
 warmup_iters = 2000 # how many steps to warm up for
 lr_decay_iters = 600000 # should be ~= max_iters per Chinchilla
 min_lr = 6e-5 # minimum learning rate, should be ~= learning_rate/10 per Chinchilla
+# early stopping
+early_stop_val_loss = None # set to a value like 3.2 to enable early stopping
+early_stop_patience = 3 # number of evaluations to wait after reaching target
+early_stop_threshold = 3.3 # when val loss drops below this, use high_freq_eval_interval
+high_freq_eval_interval = 100 # eval more frequently when close to target
 # DDP settings
 backend = 'nccl' # 'nccl', 'gloo', etc.
 # system
@@ -246,6 +255,17 @@ if wandb_log and master_process:
     import wandb
     wandb.init(project=wandb_project, name=wandb_run_name, config=config)
 
+# early stopping tracking
+early_stop_count = 0
+last_val_loss = None
+if early_stop_val_loss is not None:
+    print(f"\n{'='*60}")
+    print(f"EARLY STOPPING ENABLED")
+    print(f"Target val loss: {early_stop_val_loss}")
+    print(f"Patience: {early_stop_patience} evaluations after target reached")
+    print(f"Adaptive eval: use interval {high_freq_eval_interval} when val_loss < {early_stop_threshold}")
+    print(f"{'='*60}\n")
+
 # training loop
 X, Y = get_batch('train') # fetch the very first batch
 t0 = time.time()
@@ -260,9 +280,47 @@ while True:
         param_group['lr'] = lr
 
     # evaluate the loss on train/val sets and write checkpoints
-    if iter_num % eval_interval == 0 and master_process:
+    # Adaptive eval interval: use high_freq_eval_interval when val_loss < early_stop_threshold
+    current_eval_interval = eval_interval
+    if early_stop_val_loss is not None and last_val_loss is not None and last_val_loss < early_stop_threshold:
+        current_eval_interval = high_freq_eval_interval
+
+    if iter_num % current_eval_interval == 0 and master_process:
         losses = estimate_loss()
-        print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+        val_loss = losses['val']
+        ppl = math.exp(val_loss)
+        eval_mode = "HIGH FREQ" if current_eval_interval == high_freq_eval_interval else "normal"
+        print(f"[{eval_mode}] step {iter_num}: train loss {losses['train']:.4f}, val loss {val_loss:.4f}, PPL {ppl:.2f}")
+
+        # Log last_val_loss for adaptive eval interval decision (for next iteration)
+        last_val_loss = val_loss
+
+        # Early stopping check
+        if early_stop_val_loss is not None:
+            if val_loss < early_stop_val_loss:
+                early_stop_count += 1
+                print(f"\n*** TARGET REACHED! val_loss {val_loss:.4f} < {early_stop_val_loss} ***")
+                print(f"Patience counter: {early_stop_count}/{early_stop_patience}")
+                if early_stop_count >= early_stop_patience:
+                    print(f"\n{'='*60}")
+                    print(f"EARLY STOPPING: Target val loss maintained for {early_stop_patience} evaluations")
+                    print(f"Final val loss: {val_loss:.4f}, PPL: {ppl:.2f}")
+                    print(f"{'='*60}")
+                    # Save final checkpoint
+                    checkpoint = {
+                        'model': raw_model.state_dict(),
+                        'optimizer': optimizer.state_dict(),
+                        'model_args': model_args,
+                        'iter_num': iter_num,
+                        'best_val_loss': best_val_loss,
+                        'config': config,
+                    }
+                    torch.save(checkpoint, os.path.join(out_dir, 'ckpt.pt'))
+                    print(f"Saved checkpoint to {out_dir}")
+                    break
+            else:
+                early_stop_count = 0
+
         if wandb_log:
             wandb.log({
                 "iter": iter_num,
