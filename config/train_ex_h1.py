@@ -13,7 +13,7 @@
 # - weight_decay: 1e-1 -> 2e-1
 # ============================================================
 
-out_dir = 'out-exp1-high-reg'
+out_dir = 'out-ex1-reg'
 eval_interval = 250
 eval_iters = 100
 log_interval = 25
@@ -21,7 +21,7 @@ always_save_checkpoint = True
 
 wandb_log = False
 wandb_project = 'rocstories-exp'
-wandb_run_name = 'exp1-high-regularization'
+wandb_run_name = 'ex1-regularization'
 
 dataset = 'rocstories'
 gradient_accumulation_steps = 4

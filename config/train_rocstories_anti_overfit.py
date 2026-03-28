@@ -7,7 +7,7 @@
 # - Stronger dropout to prevent overfitting
 # - Shorter training to avoid overfitting
 
-out_dir = 'out-rocstories-v2'
+out_dir = 'out-rocstories-v2-latest'
 eval_interval = 250  # More frequent evaluation
 eval_iters = 100
 log_interval = 25

@@ -15,7 +15,7 @@ always_save_checkpoint = True
 
 wandb_log = False
 wandb_project = 'rocstories-nanogpt'
-wandb_run_name = 'rocstories-anti-overfit'
+wandb_run_name = 'rocstories-anti-overfit-ex'
 
 # Dataset
 dataset = 'rocstories'
