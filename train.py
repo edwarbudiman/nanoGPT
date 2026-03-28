@@ -70,8 +70,8 @@ decay_lr = True # whether to decay the learning rate
 warmup_iters = 2000 # how many steps to warm up for
 lr_decay_iters = 600000 # should be ~= max_iters per Chinchilla
 min_lr = 6e-5 # minimum learning rate, should be ~= learning_rate/10 per Chinchilla
-# early stopping
-early_stop_val_loss = None # set to a value like 3.2 to enable early stopping
+# early stopping (0.0 = disabled, > 0 = enabled with that target val_loss)
+early_stop_val_loss = 0.0 # set to a value like 3.2 to enable early stopping
 early_stop_patience = 3 # number of evaluations to wait after reaching target
 early_stop_threshold = 3.3 # when val loss drops below this, use high_freq_eval_interval
 high_freq_eval_interval = 100 # eval more frequently when close to target
@@ -258,7 +258,7 @@ if wandb_log and master_process:
 # early stopping tracking
 early_stop_count = 0
 last_val_loss = None
-if early_stop_val_loss is not None:
+if early_stop_val_loss > 0:
     print(f"\n{'='*60}")
     print(f"EARLY STOPPING ENABLED")
     print(f"Target val loss: {early_stop_val_loss}")
@@ -282,7 +282,7 @@ while True:
     # evaluate the loss on train/val sets and write checkpoints
     # Adaptive eval interval: use high_freq_eval_interval when val_loss < early_stop_threshold
     current_eval_interval = eval_interval
-    if early_stop_val_loss is not None and last_val_loss is not None and last_val_loss < early_stop_threshold:
+    if early_stop_val_loss > 0 and last_val_loss is not None and last_val_loss < early_stop_threshold:
         current_eval_interval = high_freq_eval_interval
 
     if iter_num % current_eval_interval == 0 and master_process:
@@ -296,7 +296,7 @@ while True:
         last_val_loss = val_loss
 
         # Early stopping check
-        if early_stop_val_loss is not None:
+        if early_stop_val_loss > 0:
             if val_loss < early_stop_val_loss:
                 early_stop_count += 1
                 print(f"\n*** TARGET REACHED! val_loss {val_loss:.4f} < {early_stop_val_loss} ***")
