@@ -29,6 +29,6 @@ for split in ["train", "val"]:
 
     with open(txt_path, "w", encoding="utf-8") as f:
         for story in stories:
-            f.write(story.strip() + "\n")
+            f.write(story.strip() + "\n\n")
 
     print(f"wrote {len(stories):,} stories to {txt_path}")
