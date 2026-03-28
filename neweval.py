@@ -212,16 +212,10 @@ with torch.no_grad():
                 x_batch[j, :len(inp)] = torch.tensor(inp, dtype=torch.long)
                 y_batch[j, :len(tgt)] = torch.tensor(tgt, dtype=torch.long)
 
-            logits, _ = model(x_batch)  # (B, T, vocab_size)
-            # Compute per-token loss manually, ignoring padded positions (target == -1)
-            loss = torch.nn.functional.cross_entropy(
-                logits.view(-1, logits.size(-1)),
-                y_batch.view(-1),
-                ignore_index=-1,
-                reduction='sum',
-            )
+            # Pass targets so model returns full logits + mean loss (with ignore_index=-1)
+            _, loss = model(x_batch, y_batch)
             n_tok = (y_batch != -1).sum().item()
-            total_nll += loss.item()
+            total_nll += loss.item() * n_tok
             total_tokens += n_tok
 
 if total_tokens == 0:
