@@ -3,6 +3,9 @@ cd nanoGPT
 git fetch origin c1
 git checkout c1
 pip install tiktoken huggingface_hub datasets
+
+git fetch origin c1
+git pull origin c1
 # nanoGPT
 
 ![nanoGPT](assets/nanogpt.jpg)
