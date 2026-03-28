@@ -20,7 +20,7 @@ import tiktoken
 
 # Configuration
 DATASET_NAME = "mintujupally/ROCStories"
-STORY_SEPARATOR = "\n\n"  # Separator between stories for clarity
+STORY_SEPARATOR = "<|endoftext|>"  # GPT-2 special token as story boundary
 
 def prepare_rocstories():
     """Download and prepare ROCStories dataset using official splits."""
@@ -47,7 +47,7 @@ def prepare_rocstories():
     train_stories = [example['text'].strip() for example in train_split]
     val_stories = [example['text'].strip() for example in test_split]
 
-    # Join with story separator
+    # Join with <|endoftext|> as story boundary
     train_text = STORY_SEPARATOR.join(train_stories)
     val_text = STORY_SEPARATOR.join(val_stories)
 
@@ -58,11 +58,19 @@ def prepare_rocstories():
     print("\n[3/4] Tokenizing with GPT-2 BPE tokenizer...")
     enc = tiktoken.get_encoding("gpt2")
 
-    train_ids = enc.encode_ordinary(train_text)
-    val_ids = enc.encode_ordinary(val_text)
+    train_ids = enc.encode(train_text, allowed_special={"<|endoftext|>"})
+    val_ids = enc.encode(val_text, allowed_special={"<|endoftext|>"})
 
     print(f"Train tokens: {len(train_ids):,}")
     print(f"Val tokens: {len(val_ids):,}")
+
+    # Save output in text files too
+    check_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'check')
+    os.makedirs(check_dir, exist_ok=True)
+    with open(os.path.join(check_dir, 'train.txt'), 'w', encoding='utf-8') as f:
+        f.write(enc.decode(train_ids))
+    with open(os.path.join(check_dir, 'val.txt'), 'w', encoding='utf-8') as f:
+        f.write(enc.decode(val_ids))
 
     # Save to binary files
     print("\n[4/4] Saving to binary files...")
