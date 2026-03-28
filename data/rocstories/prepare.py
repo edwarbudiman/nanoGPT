@@ -1,92 +1,116 @@
+"""
+Prepare ROCStories dataset for nanoGPT training.
+
+This script:
+1. Downloads ROCStories dataset from HuggingFace
+2. Uses official train/test splits
+3. Tokenizes using GPT-2 BPE tokenizer (tiktoken)
+4. Saves as train.bin and val.bin files (test split used as validation)
+"""
+
 import os
-import re
-
+import json
 import numpy as np
+from datasets import load_dataset
+
+# Set tiktoken cache directory to writable location
+os.environ['TIKTOKEN_CACHE_DIR'] = '/tmp/tiktoken_cache'
+
 import tiktoken
-from huggingface_hub import snapshot_download
 
-HF_REPO_ID = "mintujupally/ROCStories"
-EOT_TOKEN_ID = 50256  # <|endoftext|> in GPT-2 tokenizer
-BASE_DIR = os.path.dirname(__file__)
+# Configuration
+DATASET_NAME = "mintujupally/ROCStories"
+STORY_SEPARATOR = "\n\n"  # Separator between stories for clarity
 
+def prepare_rocstories():
+    """Download and prepare ROCStories dataset using official splits."""
 
-def split_into_sentences(text):
-    parts = re.split(r"(?<=[.!?])\s+", text.strip())
-    return [p.strip() for p in parts if p.strip()]
+    print("=" * 50)
+    print("ROCStories Dataset Preparation for nanoGPT")
+    print("=" * 50)
 
+    # Load dataset from HuggingFace
+    print(f"\n[1/4] Loading dataset '{DATASET_NAME}' from HuggingFace...")
+    dataset = load_dataset(DATASET_NAME)
 
-def normalize_story(raw_story):
-    sentences = split_into_sentences(raw_story)
-    if len(sentences) != 5:
-        return None
-    return " ".join(sentences)
+    print(f"Dataset splits: {list(dataset.keys())}")
 
+    # Get official train and test splits
+    train_split = dataset['train']
+    test_split = dataset['test']
 
-def load_stories_from_hf_text(path):
-    stories = []
-    with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            story = normalize_story(line)
-            if story is not None:
-                stories.append(story)
-    return stories
+    print(f"Train stories: {len(train_split):,}")
+    print(f"Test stories (used as validation): {len(test_split):,}")
 
+    # Format stories
+    print("\n[2/4] Formatting stories...")
+    train_stories = [example['text'].strip() for example in train_split]
+    val_stories = [example['text'].strip() for example in test_split]
 
-print(f"downloading dataset files from Hugging Face Hub: {HF_REPO_ID}")
-local_repo_dir = snapshot_download(
-    repo_id=HF_REPO_ID,
-    repo_type="dataset",
-    allow_patterns=["train.txt", "test.txt"],
-)
+    # Join with story separator
+    train_text = STORY_SEPARATOR.join(train_stories)
+    val_text = STORY_SEPARATOR.join(val_stories)
 
-train_txt = os.path.join(local_repo_dir, "train.txt")
-test_txt = os.path.join(local_repo_dir, "test.txt")
-if not os.path.exists(train_txt) or not os.path.exists(test_txt):
-    raise FileNotFoundError(
-        "Expected train.txt and test.txt in Hugging Face dataset repo."
-    )
+    print(f"Train text length: {len(train_text):,} characters")
+    print(f"Val text length: {len(val_text):,} characters")
 
-train_stories = load_stories_from_hf_text(train_txt)
-test_stories = load_stories_from_hf_text(test_txt)
+    # Tokenize using GPT-2 BPE tokenizer
+    print("\n[3/4] Tokenizing with GPT-2 BPE tokenizer...")
+    enc = tiktoken.get_encoding("gpt2")
 
-if not train_stories or not test_stories:
-    raise ValueError(
-        "Failed to load 5-sentence stories from train.txt/test.txt. "
-        "Please check dataset format."
-    )
+    train_ids = enc.encode_ordinary(train_text)
+    val_ids = enc.encode_ordinary(val_text)
 
-print(f"loaded train stories: {len(train_stories):,}")
-print(f"loaded val stories: {len(test_stories):,}")
+    print(f"Train tokens: {len(train_ids):,}")
+    print(f"Val tokens: {len(val_ids):,}")
 
-enc = tiktoken.get_encoding("gpt2")
+    # Save to binary files
+    print("\n[4/4] Saving to binary files...")
+    data_dir = os.path.dirname(os.path.abspath(__file__))
 
+    train_ids_np = np.array(train_ids, dtype=np.uint16)
+    val_ids_np = np.array(val_ids, dtype=np.uint16)
 
-def tokenize_stories(stories_list):
-    ids = []
-    for story in stories_list:
-        ids.extend(enc.encode_ordinary(story))
-        ids.append(EOT_TOKEN_ID)
-    return ids
+    train_path = os.path.join(data_dir, 'train.bin')
+    val_path = os.path.join(data_dir, 'val.bin')
 
+    train_ids_np.tofile(train_path)
+    val_ids_np.tofile(val_path)
 
-train_ids = tokenize_stories(train_stories)
-val_ids = tokenize_stories(test_stories)
+    print(f"Saved train.bin ({len(train_ids_np):,} tokens) to: {train_path}")
+    print(f"Saved val.bin ({len(val_ids_np):,} tokens) to: {val_path}")
 
-print(f"train has {len(train_ids):,} tokens")
-print(f"val has {len(val_ids):,} tokens")
-print(f"total has {len(train_ids) + len(val_ids):,} tokens")
+    # Save metadata
+    meta = {
+        'dataset': DATASET_NAME,
+        'num_train_stories': len(train_stories),
+        'num_val_stories': len(val_stories),
+        'train_tokens': len(train_ids),
+        'val_tokens': len(val_ids),
+        'vocab_size': enc.n_vocab,
+        'separator': STORY_SEPARATOR,
+        'tokenizer': 'gpt2 (tiktoken)'
+    }
 
-train_ids = np.array(train_ids, dtype=np.uint16)
-val_ids = np.array(val_ids, dtype=np.uint16)
-train_ids.tofile(os.path.join(BASE_DIR, "train.bin"))
-val_ids.tofile(os.path.join(BASE_DIR, "val.bin"))
-print("wrote train.bin and val.bin")
+    meta_path = os.path.join(data_dir, 'meta.json')
+    with open(meta_path, 'w') as f:
+        json.dump(meta, f, indent=2)
 
-# Ensure GPT-2 BPE path is used in training (no char-level meta.pkl)
-meta_path = os.path.join(BASE_DIR, "meta.pkl")
-if os.path.exists(meta_path):
-    os.remove(meta_path)
-    print("removed stale meta.pkl")
+    print(f"\nSaved metadata to: {meta_path}")
+    print("\n" + "=" * 50)
+    print("ROCStories preparation complete!")
+    print("=" * 50)
+
+    return meta
+
+if __name__ == "__main__":
+    meta = prepare_rocstories()
+
+    # Print summary
+    print("\n--- Dataset Summary ---")
+    print(f"Dataset: {meta['dataset']}")
+    print(f"Train stories: {meta['num_train_stories']:,}")
+    print(f"Validation stories: {meta['num_val_stories']:,}")
+    print(f"Train tokens: {meta['train_tokens']:,}")
+    print(f"Val tokens: {meta['val_tokens']:,}")
+    print(f"Vocab size: {meta['vocab_size']}")
