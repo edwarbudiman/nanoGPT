@@ -42,6 +42,16 @@ def prepare_rocstories():
     print(f"Train stories: {len(train_split):,}")
     print(f"Test stories (used as validation): {len(test_split):,}")
 
+    # Save raw text files
+    data_dir = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(data_dir, 'train.txt'), 'w', encoding='utf-8') as f:
+        for example in train_split:
+            f.write(example['text'] + '\n')
+    with open(os.path.join(data_dir, 'val.txt'), 'w', encoding='utf-8') as f:
+        for example in test_split:
+            f.write(example['text'] + '\n')
+    print("Saved train.txt and val.txt")
+
     # Format stories
     print("\n[2/4] Formatting stories...")
     train_stories = [example['text'].strip() for example in train_split]
@@ -64,13 +74,13 @@ def prepare_rocstories():
     print(f"Train tokens: {len(train_ids):,}")
     print(f"Val tokens: {len(val_ids):,}")
 
-    # Save output in text files too
-    check_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'check')
-    os.makedirs(check_dir, exist_ok=True)
-    with open(os.path.join(check_dir, 'train.txt'), 'w', encoding='utf-8') as f:
-        f.write(enc.decode(train_ids))
-    with open(os.path.join(check_dir, 'val.txt'), 'w', encoding='utf-8') as f:
-        f.write(enc.decode(val_ids))
+    # # Save output in text files too
+    # check_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'check')
+    # os.makedirs(check_dir, exist_ok=True)
+    # with open(os.path.join(check_dir, 'train.txt'), 'w', encoding='utf-8') as f:
+    #     f.write(enc.decode(train_ids))
+    # with open(os.path.join(check_dir, 'val.txt'), 'w', encoding='utf-8') as f:
+    #     f.write(enc.decode(val_ids))
 
     # Save to binary files
     print("\n[4/4] Saving to binary files...")
