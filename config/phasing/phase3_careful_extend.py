@@ -15,7 +15,7 @@
 #       --init_from=resume --out_dir=out-rocstories-phase2b
 # ============================================================================
 
-out_dir = 'out-rocstories-phase2b'  # CHANGE THIS to your best Phase 2 result
+out_dir = 'out-rocstories-phase3'  # CHANGE THIS to your best Phase 2 result
 eval_interval = 100
 eval_iters = 100
 log_interval = 25
