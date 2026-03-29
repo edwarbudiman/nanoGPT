@@ -42,6 +42,7 @@ log_interval = 1
 eval_iters = 200
 eval_only = False # if True, script exits right after the first eval
 always_save_checkpoint = True # if True, always save a checkpoint after each eval
+c_prefix= ''
 init_from = 'scratch' # 'scratch' or 'resume' or 'gpt2*'
 # wandb logging
 wandb_log = False # disabled by default
@@ -315,7 +316,7 @@ while True:
                         'best_val_loss': best_val_loss,
                         'config': config,
                     }
-                    torch.save(checkpoint, os.path.join(out_dir, 'ckpt' + str(iter_num) + '.pt'))
+                    torch.save(checkpoint, os.path.join(out_dir, c_prefix +'ckpt' + str(iter_num) + '.pt'))
                     print(f"Saved checkpoint to {out_dir}")
                     break
             else:
@@ -341,7 +342,7 @@ while True:
                     'config': config,
                 }
                 print(f"saving checkpoint to {out_dir}")
-                torch.save(checkpoint, os.path.join(out_dir, 'ckpt' + str(iter_num) + '.pt'))
+                torch.save(checkpoint, os.path.join(out_dir, c_prefix +'ckpt' + str(iter_num) + '.pt'))
     if iter_num == 0 and eval_only:
         break
 
