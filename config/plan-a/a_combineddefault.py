@@ -5,7 +5,7 @@ out_dir = 'out-plan-a/a-default'
 eval_interval = 500
 eval_iters = 100
 log_interval = 50
-always_save_checkpoint = True
+always_save_checkpoint = False
 
 wandb_log = False
 wandb_project = 'rocstories-plan-a'
