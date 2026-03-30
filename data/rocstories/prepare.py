@@ -37,7 +37,7 @@ def prepare_rocstories():
 
     # Get official train and test splits
     # train_split = dataset['train']
-    # test_split = dataset['test']
+    validation_split = dataset['test']
     
     # split dataset['train'] 90:10 for train and validation
     full_train_split = dataset['train']
@@ -55,7 +55,7 @@ def prepare_rocstories():
         for example in train_split:
             f.write(example['text'] + '\n')
     with open(os.path.join(data_dir, 'val.txt'), 'w', encoding='utf-8') as f:
-        for example in test_split:
+        for example in validation_split:
             f.write(example['text'] + '\n')
     print("Saved train.txt and val.txt")
 
