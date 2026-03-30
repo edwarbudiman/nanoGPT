@@ -1,7 +1,7 @@
 # Plan A Combined: All training pipeline improvements (A1 + A2 + A3)
 # QK-Norm + Value Dropout + Weight Decay Schedule
 
-out_dir = 'out-plan-a/a-combined'
+out_dir = 'out-plan-a/a-default'
 eval_interval = 500
 eval_iters = 100
 log_interval = 50
