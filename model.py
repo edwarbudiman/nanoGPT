@@ -105,6 +105,79 @@ class Block(nn.Module):
         x = x + self.mlp(self.ln_2(x))
         return x
 
+class EngramModule(nn.Module):
+    """N-gram memory lookup module inspired by DeepSeek's Engram.
+
+    Hashes bigram and trigram token contexts into an embedding table using
+    multiple independent hash functions, then fuses the retrieved vectors
+    into the residual stream via a learned context-aware gate.
+
+    Reference: DeepSeek Engram (arXiv:2601.07372)
+    """
+
+    def __init__(self, n_embd, table_size=8192, engram_dim=64, n_hash=4, dropout=0.0):
+        super().__init__()
+        self.table_size = table_size
+        self.engram_dim = engram_dim
+        self.n_hash = n_hash
+
+        # Shared embedding table for n-gram lookups
+        self.table = nn.Embedding(table_size, engram_dim)
+
+        # Project from engram_dim back to hidden dim
+        self.proj = nn.Linear(engram_dim, n_embd, bias=False)
+
+        # Context-aware scalar gate (per-position)
+        self.gate_proj = nn.Linear(n_embd, 1, bias=True)
+        # Initialize gate bias negative so initial contribution is small (~0.12)
+        nn.init.constant_(self.gate_proj.bias, -2.0)
+
+        self.dropout = nn.Dropout(dropout)
+
+        # Fixed hash primes for multi-head hashing (not learned)
+        primes = torch.tensor([31, 37, 41, 43, 47, 53, 59, 61][:n_hash], dtype=torch.long)
+        self.register_buffer('hash_primes', primes)
+
+    def forward(self, token_ids, hidden):
+        """
+        Args:
+            token_ids: (B, T) original input token IDs
+            hidden: (B, T, n_embd) current hidden states from transformer
+        Returns:
+            (B, T, n_embd) hidden states with n-gram information fused in
+        """
+        B, T = token_ids.shape
+        device = token_ids.device
+
+        # Build shifted token IDs for causal n-gram context
+        # bigram: (token[t-1], token[t]), trigram: (token[t-2], token[t-1], token[t])
+        prev = F.pad(token_ids[:, :-1], (1, 0))       # (B, T) — zero-padded shift-by-1
+        prev_prev = F.pad(token_ids[:, :-2], (2, 0))   # (B, T) — zero-padded shift-by-2
+
+        # Vectorized multi-head hashing
+        # Expand to (n_hash, 1, 1) for broadcasting against (B, T)
+        p = self.hash_primes.view(self.n_hash, 1, 1)
+        curr_ex = token_ids.unsqueeze(0)      # (1, B, T)
+        prev_ex = prev.unsqueeze(0)            # (1, B, T)
+        pprev_ex = prev_prev.unsqueeze(0)      # (1, B, T)
+
+        # Bigram hash: (prev * prime + curr) % table_size  -> (n_hash, B, T)
+        bi_idx = (prev_ex * p + curr_ex) % self.table_size
+        # Trigram hash: (prev_prev * prime^2 + prev * prime + curr) % table_size
+        tri_idx = (pprev_ex * p * p + prev_ex * p + curr_ex) % self.table_size
+
+        # Lookup and average: (n_hash, B, T, engram_dim) -> (B, T, engram_dim)
+        bi_emb = self.table(bi_idx)
+        tri_emb = self.table(tri_idx)
+        ngram_embed = (bi_emb.sum(dim=0) + tri_emb.sum(dim=0)) / (2 * self.n_hash)
+
+        # Project to hidden dim and apply context-aware gating
+        projected = self.proj(ngram_embed)                 # (B, T, n_embd)
+        gate = torch.sigmoid(self.gate_proj(hidden))       # (B, T, 1)
+
+        return hidden + self.dropout(gate * projected)
+
+
 @dataclass
 class GPTConfig:
     block_size: int = 1024
@@ -114,6 +187,17 @@ class GPTConfig:
     n_embd: int = 768
     dropout: float = 0.0
     bias: bool = True # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
+    # Engram n-gram memory module (disabled by default for backward compatibility)
+    engram_enabled: bool = False
+    engram_table_size: int = 8192  # number of entries in the hash table
+    engram_dim: int = 64           # embedding dimension per entry
+    engram_n_hash: int = 4         # number of independent hash functions
+    engram_layers: tuple = (1, 4)  # insert Engram after these transformer layers
+
+    def __post_init__(self):
+        # Checkpoint loading may deserialize tuple as list — normalize
+        if isinstance(self.engram_layers, list):
+            self.engram_layers = tuple(self.engram_layers)
 
 class GPT(nn.Module):
 
@@ -137,12 +221,30 @@ class GPT(nn.Module):
         # not 100% sure what this is, so far seems to be harmless. TODO investigate
         self.transformer.wte.weight = self.lm_head.weight # https://paperswithcode.com/method/weight-tying
 
+        # Engram n-gram memory modules (inserted after specific transformer layers)
+        if config.engram_enabled:
+            self.engram_modules = nn.ModuleDict({
+                str(layer_idx): EngramModule(
+                    n_embd=config.n_embd,
+                    table_size=config.engram_table_size,
+                    engram_dim=config.engram_dim,
+                    n_hash=config.engram_n_hash,
+                    dropout=config.dropout,
+                )
+                for layer_idx in config.engram_layers
+            })
+
         # init all weights
         self.apply(self._init_weights)
         # apply special scaled init to the residual projections, per GPT-2 paper
         for pn, p in self.named_parameters():
             if pn.endswith('c_proj.weight'):
                 torch.nn.init.normal_(p, mean=0.0, std=0.02/math.sqrt(2 * config.n_layer))
+
+        # re-apply Engram gate bias init (overwritten by _init_weights)
+        if config.engram_enabled:
+            for mod in self.engram_modules.values():
+                nn.init.constant_(mod.gate_proj.bias, -2.0)
 
         # report number of parameters
         print("number of parameters: %.2fM" % (self.get_num_params()/1e6,))
@@ -177,8 +279,13 @@ class GPT(nn.Module):
         tok_emb = self.transformer.wte(idx) # token embeddings of shape (b, t, n_embd)
         pos_emb = self.transformer.wpe(pos) # position embeddings of shape (t, n_embd)
         x = self.transformer.drop(tok_emb + pos_emb)
-        for block in self.transformer.h:
+        for i, block in enumerate(self.transformer.h):
             x = block(x)
+            # Apply Engram n-gram memory lookup after designated layers
+            if self.config.engram_enabled:
+                engram_key = str(i)
+                if engram_key in self.engram_modules:
+                    x = self.engram_modules[engram_key](idx, x)
         x = self.transformer.ln_f(x)
 
         if targets is not None:
