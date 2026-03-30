@@ -26,11 +26,26 @@ class LayerNorm(nn.Module):
     def forward(self, input):
         return F.layer_norm(input, self.weight.shape, self.weight, self.bias, 1e-5)
 
+class RMSNorm(nn.Module):
+    """RMSNorm for QK normalization, applied per-head."""
+
+    def __init__(self, dim, eps=1e-6):
+        super().__init__()
+        self.eps = eps
+        self.weight = nn.Parameter(torch.ones(dim))
+
+    def forward(self, x):
+        # x: (B, nh, T, hs)
+        rms = torch.sqrt(x.float().pow(2).mean(-1, keepdim=True) + self.eps)
+        x = (x.float() / rms).type_as(x)
+        return x * self.weight
+
 class CausalSelfAttention(nn.Module):
 
     def __init__(self, config):
         super().__init__()
         assert config.n_embd % config.n_head == 0
+        self.head_dim = config.n_embd // config.n_head
         # key, query, value projections for all heads, but in a batch
         self.c_attn = nn.Linear(config.n_embd, 3 * config.n_embd, bias=config.bias)
         # output projection
@@ -41,6 +56,16 @@ class CausalSelfAttention(nn.Module):
         self.n_head = config.n_head
         self.n_embd = config.n_embd
         self.dropout = config.dropout
+        # A1: QK-Norm with learnable scalar per head
+        self.qk_norm = getattr(config, 'qk_norm', False)
+        if self.qk_norm:
+            self.q_norm = RMSNorm(self.head_dim)
+            self.k_norm = RMSNorm(self.head_dim)
+            # learnable scalar per head — lets each head control attention sharpness
+            self.attn_scale = nn.Parameter(torch.ones(self.n_head, 1, 1))
+        # A2: extra dropout on value projections
+        v_dropout_rate = getattr(config, 'v_dropout', 0.0)
+        self.v_dropout = nn.Dropout(v_dropout_rate) if v_dropout_rate > 0.0 else None
         # flash attention make GPU go brrrrr but support is only in PyTorch >= 2.0
         self.flash = hasattr(torch.nn.functional, 'scaled_dot_product_attention')
         if not self.flash:
@@ -58,13 +83,34 @@ class CausalSelfAttention(nn.Module):
         q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
 
+        # A1: apply QK-Norm then scale
+        if self.qk_norm:
+            q = self.q_norm(q)
+            k = self.k_norm(k)
+            # scale Q by learnable scalar (replaces the 1/sqrt(d) scaling)
+            q = q * self.attn_scale
+
+        # A2: apply extra dropout on values
+        if self.v_dropout is not None:
+            v = self.v_dropout(v)
+
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         if self.flash:
             # efficient attention using Flash Attention CUDA kernels
-            y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.dropout if self.training else 0, is_causal=True)
+            # when qk_norm is on, we already applied our own scaling via attn_scale,
+            # so we set scale=1.0 to prevent double-scaling
+            flash_scale = 1.0 if self.qk_norm else None
+            y = torch.nn.functional.scaled_dot_product_attention(
+                q, k, v, attn_mask=None,
+                dropout_p=self.dropout if self.training else 0,
+                is_causal=True, scale=flash_scale)
         else:
             # manual implementation of attention
-            att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
+            if self.qk_norm:
+                # Q already scaled by attn_scale, no need for 1/sqrt(d)
+                att = q @ k.transpose(-2, -1)
+            else:
+                att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
             att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
             att = F.softmax(att, dim=-1)
             att = self.attn_dropout(att)
@@ -114,6 +160,9 @@ class GPTConfig:
     n_embd: int = 768
     dropout: float = 0.0
     bias: bool = True # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
+    # Plan A improvements (defaults preserve original behavior)
+    qk_norm: bool = False # A1: apply RMSNorm to Q,K with learnable scalar per head
+    v_dropout: float = 0.0 # A2: extra dropout on value projections (0.0 = disabled)
 
 class GPT(nn.Module):
 

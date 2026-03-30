@@ -59,6 +59,9 @@ n_head = 12
 n_embd = 768
 dropout = 0.0 # for pretraining 0 is good, for finetuning try 0.1+
 bias = False # do we use bias inside LayerNorm and Linear layers?
+# Plan A model improvements
+qk_norm = False # A1: QK-Norm with learnable scalar on Q,K
+v_dropout = 0.0 # A2: extra dropout on value projections
 # adamw optimizer
 learning_rate = 6e-4 # max learning rate
 max_iters = 600000 # total number of training iterations
@@ -66,6 +69,9 @@ weight_decay = 1e-1
 beta1 = 0.9
 beta2 = 0.95
 grad_clip = 1.0 # clip gradients at this value, or disable if == 0.0
+# A3: weight decay schedule (cosine, tied to LR schedule)
+wd_schedule = False # if True, cosine-decay weight_decay from weight_decay -> min_weight_decay
+min_weight_decay = 0.01 # minimum weight decay at end of schedule
 # learning rate decay settings
 decay_lr = True # whether to decay the learning rate
 warmup_iters = 2000 # how many steps to warm up for
@@ -155,7 +161,8 @@ if os.path.exists(meta_path):
 
 # model init
 model_args = dict(n_layer=n_layer, n_head=n_head, n_embd=n_embd, block_size=block_size,
-                  bias=bias, vocab_size=None, dropout=dropout) # start with model_args from command line
+                  bias=bias, vocab_size=None, dropout=dropout,
+                  qk_norm=qk_norm, v_dropout=v_dropout) # start with model_args from command line
 if init_from == 'scratch':
     # init a new model from scratch
     print("Initializing a new model from scratch")
@@ -251,6 +258,19 @@ def get_lr(it):
     coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio)) # coeff ranges 0..1
     return min_lr + coeff * (learning_rate - min_lr)
 
+# A3: weight decay schedule (cosine, mirrors LR schedule)
+def get_wd(it):
+    if not wd_schedule:
+        return weight_decay
+    # same cosine shape as LR: warmup at full wd, then decay to min_weight_decay
+    if it < warmup_iters:
+        return weight_decay
+    if it > lr_decay_iters:
+        return min_weight_decay
+    decay_ratio = (it - warmup_iters) / (lr_decay_iters - warmup_iters)
+    coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))
+    return min_weight_decay + coeff * (weight_decay - min_weight_decay)
+
 # logging
 if wandb_log and master_process:
     import wandb
@@ -277,8 +297,12 @@ while True:
 
     # determine and set the learning rate for this iteration
     lr = get_lr(iter_num) if decay_lr else learning_rate
+    wd = get_wd(iter_num)
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
+        # only update weight_decay for the decay group (group 0), not the no-decay group (group 1)
+        if param_group['weight_decay'] > 0.0 or (wd_schedule and param_group is optimizer.param_groups[0]):
+            param_group['weight_decay'] = wd
 
     # evaluate the loss on train/val sets and write checkpoints
     # Adaptive eval interval: use high_freq_eval_interval when val_loss < early_stop_threshold
