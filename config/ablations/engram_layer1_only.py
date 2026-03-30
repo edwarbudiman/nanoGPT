@@ -9,7 +9,7 @@ out_dir = 'outs/out-rocstories-engram-L1'
 eval_interval = 250
 eval_iters = 100
 log_interval = 25
-always_save_checkpoint = True
+always_save_checkpoint = False
 
 wandb_log = False
 wandb_project = 'rocstories-nanogpt'
