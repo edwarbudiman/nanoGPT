@@ -16,7 +16,7 @@
 #   python train.py config/phase1_initial_training.py --early_stop_val_loss=3.2
 # ============================================================================
 
-out_dir = 'out-rocstories-phase1'
+out_dir = 'outs/out-w1'
 eval_interval = 250
 eval_iters = 100
 log_interval = 25
