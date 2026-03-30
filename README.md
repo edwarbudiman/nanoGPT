@@ -1,7 +1,7 @@
 git clone https://github.com/edwarbudiman/nanoGPT.git
 cd nanoGPT
-git fetch origin c2
-git checkout c2
+git fetch origin c2a
+git checkout c2a
 pip install tiktoken huggingface_hub datasets transformers
 python data/rocstories/prepare.py
 
@@ -16,7 +16,7 @@ python neweval.py --init_from=resume --input_file=data/rocstories/val.txt --out_
 python neweval.py --init_from=resume --input_file=data/rocstories/val.txt --out_dir=outs/out-rocstories-large
 
 python neweval.py --init_from=resume --input_file=data/rocstories/check/test.txt --out_dir=out-out-hadis
-python neweval.py --init_from=resume --input_file=data/rocstories/check/test.txt --out_dir=out-
+python neweval.py --init_from=resume --input_file=data/rocstories/check/val.txt --out_dir=out-
 
 python eval.py --init_from=resume --out_dir=out-ex1-reg
 python eval.py --init_from=resume --out_dir=out-ex-rocstories-v2
