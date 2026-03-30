@@ -3,18 +3,30 @@ cd nanoGPT
 git fetch origin c2
 git checkout c2
 pip install tiktoken huggingface_hub datasets transformers
+python data/rocstories/prepare.py
 
 git pull origin c2
 python data/rocstories/prepare.py
-python train.py config/phasing/phase1_initial_training.py
+python train.py config/phasing/phase1_initial_training.py 2>&1 | tee logs/
 
 python neweval.py --init_from=resume --input_file=data/rocstories/val.txt --out_dir=out-ex-rocstories-v2
-python neweval.py --init_from=resume --input_file=data/rocstories/check/val.txt --out_dir=out-ev
+
+<!-- work -->
+python neweval.py --init_from=resume --input_file=data/rocstories/val.txt --out_dir=outs/out-rocstories-heavy-reg 
+python neweval.py --init_from=resume --input_file=data/rocstories/val.txt --out_dir=outs/out-rocstories-large
+
 python neweval.py --init_from=resume --input_file=data/rocstories/check/test.txt --out_dir=out-out-hadis
 python neweval.py --init_from=resume --input_file=data/rocstories/check/test.txt --out_dir=out-
 
 python eval.py --init_from=resume --out_dir=out-ex1-reg
 python eval.py --init_from=resume --out_dir=out-ex-rocstories-v2
+
+
+
+python train.py config/weight/w1.py 2>&1 | tee ./outs/out-w1/train1.log
+python train.py config/weight/w2.py 2>&1 | tee ./outs/out-w2/train2.log
+python train.py config/weight/w3.py 2>&1 | tee ./outs/out-w3/train3.log
+
 # nanoGPT
 
 ![nanoGPT](assets/nanogpt.jpg)
