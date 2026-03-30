@@ -42,7 +42,7 @@ exec(open('configurator.py').read())  # allows overrides from CLI / config file
 def _read_txt_paragraphs(path):
     with open(path, 'r', encoding='utf-8') as f:
         content = f.read()
-    parts = content.split('\n\n')
+    parts = content.split('\n')
     # print(parts[0])
     # print(parts[1])
     return [p.strip() for p in parts if p.strip()]
