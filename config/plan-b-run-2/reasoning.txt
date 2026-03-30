@@ -1,0 +1,89 @@
+Plan B Run 2: Fixing Engram Overfitting
+========================================
+
+PROBLEM (from Run 1 logs)
+--------------------------
+All Engram runs overfit more than the Task 1 baseline (PPL ~24.8):
+
+  engram_default (old config, dropout=0.1):
+    - Best val PPL: 32.40 @ step 1000, then val loss climbed to 5.19
+    - Train loss dropped to 0.55 -- train-val gap of 4.64
+    - Catastrophic overfitting: the hash table memorized training n-grams
+
+  task1_combined (Task 1 config + 8K table):
+    - Best val PPL: 26.46 @ step 9000
+    - Train-val gap: 0.93 (much better, but still worse than baseline)
+
+  largetable (Task 1 config + 16K table):
+    - Best val PPL: 27.99 @ step 8750
+    - Bigger table = worse PPL, confirming overfitting is the bottleneck
+
+KEY INSIGHT: The Engram embedding table (8192 x 64 = 524K params) can
+memorize training-specific n-gram patterns. During training, the model
+learns shortcut n-gram lookups that don't generalize. The existing
+dropout (0.3) only applies to the gated OUTPUT, but the raw embeddings
+retrieved from the table have zero regularization.
+
+Bigger table = more unique entries = easier to memorize = worse.
+
+
+FIXES APPLIED
+--------------
+1. engram_embed_dropout (NEW parameter)
+   - Applies dropout directly to the raw n-gram embeddings BEFORE projection
+   - Forces the model to not fully rely on any single n-gram lookup
+   - This is analogous to word embedding dropout in NLP -- a well-known
+     regularization technique for embedding tables
+
+2. Smaller table sizes (2048, 1024 entries)
+   - Fewer entries = more hash collisions = forced generalization
+   - Different n-grams mapping to the same entry forces the embedding
+     to capture shared patterns rather than memorizing specific n-grams
+   - Think of it as a compression bottleneck for n-gram information
+
+3. Combination of both
+   - Small table + high embed dropout = maximum regularization on Engram
+   - Tests whether there's a sweet spot where Engram helps without hurting
+
+
+EXPERIMENT DESIGN
+------------------
+All configs use the proven Task 1 heavy_reg base settings:
+  dropout=0.3, weight_decay=1.0, lr=6e-4, batch_size=32, beta2=0.95
+
+  A. embed_dropout_05.py   -- 8K table, embed_dropout=0.5
+     Tests: Does embedding dropout alone fix the overfitting?
+
+  B. small_table.py        -- 2K table, embed_dropout=0.3
+     Tests: Does a 4x smaller table force better generalization?
+
+  C. tiny_table.py         -- 1K table, embed_dropout=0.3
+     Tests: How small can we go before losing useful n-gram signal?
+
+  D. balanced.py           -- 4K table, embed_dropout=0.4
+     Tests: Middle ground between table capacity and regularization
+
+  E. aggressive_reg.py     -- 2K table, embed_dropout=0.5
+     Tests: Maximum regularization -- if this doesn't beat baseline,
+            Engram may not be viable for this dataset size
+
+
+WHAT WE EXPECT
+---------------
+- Configs B-E should show a smaller train-val gap than Run 1
+- If embed_dropout alone (config A) fixes it, the table size was fine
+  and the problem was purely missing regularization
+- If only small tables work, the table capacity itself is the issue
+- If nothing beats 24.8 PPL, the Engram approach may not help for
+  ROCStories at this model scale -- which is still a valid Task 2 finding
+  (negative results are valuable)
+
+
+PARAM BUDGETS
+--------------
+  A. 8K table:  31.04M total (same as Run 1)
+  B. 2K table:  30.25M total
+  C. 1K table:  30.12M total
+  D. 4K table:  30.64M total
+  E. 2K table:  30.25M total
+  All well under the 32M limit.

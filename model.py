@@ -115,7 +115,7 @@ class EngramModule(nn.Module):
     Reference: DeepSeek Engram (arXiv:2601.07372)
     """
 
-    def __init__(self, n_embd, table_size=8192, engram_dim=64, n_hash=4, dropout=0.0):
+    def __init__(self, n_embd, table_size=8192, engram_dim=64, n_hash=4, dropout=0.0, embed_dropout=0.0):
         super().__init__()
         self.table_size = table_size
         self.engram_dim = engram_dim
@@ -132,7 +132,8 @@ class EngramModule(nn.Module):
         # Initialize gate bias negative so initial contribution is small (~0.12)
         nn.init.constant_(self.gate_proj.bias, -2.0)
 
-        self.dropout = nn.Dropout(dropout)
+        self.embed_dropout = nn.Dropout(embed_dropout)  # dropout on raw n-gram embeddings
+        self.dropout = nn.Dropout(dropout)               # dropout on gated output
 
         # Fixed hash primes for multi-head hashing (not learned)
         primes = torch.tensor([31, 37, 41, 43, 47, 53, 59, 61][:n_hash], dtype=torch.long)
@@ -171,6 +172,9 @@ class EngramModule(nn.Module):
         tri_emb = self.table(tri_idx)
         ngram_embed = (bi_emb.sum(dim=0) + tri_emb.sum(dim=0)) / (2 * self.n_hash)
 
+        # Dropout on raw embeddings — prevents memorizing specific n-gram patterns
+        ngram_embed = self.embed_dropout(ngram_embed)
+
         # Project to hidden dim and apply context-aware gating
         projected = self.proj(ngram_embed)                 # (B, T, n_embd)
         gate = torch.sigmoid(self.gate_proj(hidden))       # (B, T, 1)
@@ -193,6 +197,7 @@ class GPTConfig:
     engram_dim: int = 64           # embedding dimension per entry
     engram_n_hash: int = 4         # number of independent hash functions
     engram_layers: tuple = (1, 4)  # insert Engram after these transformer layers
+    engram_embed_dropout: float = 0.0  # dropout on raw n-gram embeddings (before projection)
 
     def __post_init__(self):
         # Checkpoint loading may deserialize tuple as list — normalize
@@ -230,6 +235,7 @@ class GPT(nn.Module):
                     engram_dim=config.engram_dim,
                     n_hash=config.engram_n_hash,
                     dropout=config.dropout,
+                    embed_dropout=config.engram_embed_dropout,
                 )
                 for layer_idx in config.engram_layers
             })

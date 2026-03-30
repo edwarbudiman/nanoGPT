@@ -65,6 +65,7 @@ engram_table_size = 8192
 engram_dim = 64
 engram_n_hash = 4
 engram_layers = (1, 4)
+engram_embed_dropout = 0.0
 # adamw optimizer
 learning_rate = 6e-4 # max learning rate
 max_iters = 600000 # total number of training iterations
@@ -164,7 +165,8 @@ model_args = dict(n_layer=n_layer, n_head=n_head, n_embd=n_embd, block_size=bloc
                   bias=bias, vocab_size=None, dropout=dropout,
                   engram_enabled=engram_enabled, engram_table_size=engram_table_size,
                   engram_dim=engram_dim, engram_n_hash=engram_n_hash,
-                  engram_layers=engram_layers) # start with model_args from command line
+                  engram_layers=engram_layers,
+                  engram_embed_dropout=engram_embed_dropout) # start with model_args from command line
 if init_from == 'scratch':
     # init a new model from scratch
     print("Initializing a new model from scratch")
@@ -185,7 +187,7 @@ elif init_from == 'resume':
     for k in ['n_layer', 'n_head', 'n_embd', 'block_size', 'bias', 'vocab_size']:
         model_args[k] = checkpoint_model_args[k]
     # also restore engram config if present (backward compat with old checkpoints)
-    for k in ['engram_enabled', 'engram_table_size', 'engram_dim', 'engram_n_hash', 'engram_layers']:
+    for k in ['engram_enabled', 'engram_table_size', 'engram_dim', 'engram_n_hash', 'engram_layers', 'engram_embed_dropout']:
         if k in checkpoint_model_args:
             model_args[k] = checkpoint_model_args[k]
     # create the model
