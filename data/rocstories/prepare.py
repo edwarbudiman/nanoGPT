@@ -36,8 +36,15 @@ def prepare_rocstories():
     print(f"Dataset splits: {list(dataset.keys())}")
 
     # Get official train and test splits
-    train_split = dataset['train']
-    test_split = dataset['test']
+    # train_split = dataset['train']
+    # test_split = dataset['test']
+    
+    # split dataset['train'] 90:10 for train and validation
+    full_train_split = dataset['train']
+    train_size = int(0.9 * len(full_train_split))
+    train_split = full_train_split.select(range(train_size))
+    test_split = full_train_split.select(range(train_size, len(full_train_split)))
+    
 
     print(f"Train stories: {len(train_split):,}")
     print(f"Test stories (used as validation): {len(test_split):,}")

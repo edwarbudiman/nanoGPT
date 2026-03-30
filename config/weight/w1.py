@@ -41,15 +41,13 @@ bias = False
 # Context size
 block_size = 256
 
-# PHASE 1: Friend's recommended settings for initial exploration
 learning_rate = 6e-4
 max_iters = 8000  # Enough to find optimal point
-weight_decay = 0.01
+weight_decay = 0.1
 beta1 = 0.9
-beta2 = 0.99
+beta2 = 0.95
 grad_clip = 1.0
 
-# LR Schedule - Friend's key fix
 decay_lr = True
 warmup_iters = 750
 lr_decay_iters = 8000  # Match max_iters for proper schedule

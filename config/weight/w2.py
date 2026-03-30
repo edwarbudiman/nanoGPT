@@ -16,7 +16,7 @@
 #   python train.py config/phase1_initial_training.py --early_stop_val_loss=3.2
 # ============================================================================
 
-out_dir = 'outs/out-w2'
+out_dir = 'outs/out-w1'
 eval_interval = 250
 eval_iters = 100
 log_interval = 25
@@ -41,15 +41,13 @@ bias = False
 # Context size
 block_size = 256
 
-# PHASE 1: Friend's recommended settings for initial exploration
 learning_rate = 6e-4
 max_iters = 8000  # Enough to find optimal point
-weight_decay = 1.01
+weight_decay = 0.5
 beta1 = 0.9
-beta2 = 0.99
+beta2 = 0.95
 grad_clip = 1.0
 
-# LR Schedule - Friend's key fix
 decay_lr = True
 warmup_iters = 750
 lr_decay_iters = 8000  # Match max_iters for proper schedule
