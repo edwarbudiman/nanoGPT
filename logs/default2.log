@@ -1,0 +1,289 @@
+Overriding config with config/plan-a/a_combineddefault.py:
+# Plan A Combined: All training pipeline improvements (A1 + A2 + A3)
+# QK-Norm + Value Dropout + Weight Decay Schedule
+
+out_dir = 'out-plan-a/a-default'
+eval_interval = 500
+eval_iters = 100
+log_interval = 50
+always_save_checkpoint = False
+
+wandb_log = False
+wandb_project = 'rocstories-plan-a'
+wandb_run_name = 'a-combined'
+
+dataset = 'rocstories'
+gradient_accumulation_steps = 4
+batch_size = 64
+
+# Architecture
+n_layer = 6
+n_head = 6
+n_embd = 384
+dropout = 0.1
+bias = False
+block_size = 256
+
+# A1: QK-Norm
+qk_norm = True
+# A2: Value dropout
+v_dropout = 0.15
+
+# Optimizer
+learning_rate = 1e-3
+max_iters = 10000
+weight_decay = 0.5
+beta1 = 0.9
+beta2 = 0.99
+grad_clip = 1.0
+
+# A3: Weight decay schedule
+wd_schedule = True
+min_weight_decay = 0.01
+
+# LR schedule
+decay_lr = True
+warmup_iters = 500
+lr_decay_iters = 10000
+min_lr = 1e-4
+
+# System
+device = 'cuda'
+dtype = 'bfloat16'
+compile = True
+
+tokens per iteration will be: 65,536
+Initializing a new model from scratch
+defaulting to vocab_size of GPT-2 to 50304 (50257 rounded up for efficiency)
+number of parameters: 29.94M
+/workspace/nanoGPT/train.py:213: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = torch.cuda.amp.GradScaler(enabled=(dtype == 'float16'))
+num decayed parameter tensors: 32, with 30,031,908 parameters
+num non-decayed parameter tensors: 25, with 5,760 parameters
+using fused AdamW: True
+compiling the model... (takes a ~minute)
+[normal] step 0: train loss 10.9139, val loss 10.9139, PPL 54934.01
+iter 0: loss 10.9087, time 5115.31ms, mfu -100.00%
+iter 50: loss 8.6380, time 223.01ms, mfu 17.59%
+iter 100: loss 6.2677, time 223.19ms, mfu 17.58%
+iter 150: loss 5.4855, time 224.09ms, mfu 17.58%
+iter 200: loss 5.0149, time 225.91ms, mfu 17.56%
+iter 250: loss 4.8318, time 224.76ms, mfu 17.54%
+iter 300: loss 4.6996, time 225.37ms, mfu 17.53%
+iter 350: loss 4.5221, time 224.34ms, mfu 17.53%
+iter 400: loss 4.3313, time 223.53ms, mfu 17.53%
+iter 450: loss 4.1184, time 223.50ms, mfu 17.53%
+[normal] step 500: train loss 3.8655, val loss 4.0083, PPL 55.05
+saving checkpoint to out-plan-a/a-default
+iter 500: loss 3.9736, time 3732.34ms, mfu 15.88%
+iter 550: loss 3.8433, time 225.52ms, mfu 16.03%
+iter 600: loss 3.6846, time 224.51ms, mfu 16.18%
+iter 650: loss 3.5493, time 225.86ms, mfu 16.30%
+iter 700: loss 3.5011, time 224.89ms, mfu 16.41%
+iter 750: loss 3.3746, time 224.21ms, mfu 16.52%
+iter 800: loss 3.3048, time 223.51ms, mfu 16.62%
+iter 850: loss 3.2770, time 224.06ms, mfu 16.71%
+iter 900: loss 3.1988, time 224.17ms, mfu 16.79%
+iter 950: loss 3.1556, time 224.33ms, mfu 16.86%
+[normal] step 1000: train loss 2.9586, val loss 3.4470, PPL 31.41
+saving checkpoint to out-plan-a/a-default
+iter 1000: loss 3.0862, time 3530.16ms, mfu 15.28%
+iter 1050: loss 3.0815, time 224.09ms, mfu 15.50%
+iter 1100: loss 3.0169, time 223.27ms, mfu 15.71%
+iter 1150: loss 2.9527, time 223.91ms, mfu 15.89%
+iter 1200: loss 2.8860, time 223.73ms, mfu 16.06%
+iter 1250: loss 2.8639, time 222.59ms, mfu 16.21%
+iter 1300: loss 2.8466, time 225.70ms, mfu 16.33%
+iter 1350: loss 2.8213, time 224.34ms, mfu 16.44%
+iter 1400: loss 2.8087, time 224.62ms, mfu 16.55%
+iter 1450: loss 2.8096, time 224.52ms, mfu 16.64%
+[normal] step 1500: train loss 2.5633, val loss 3.4266, PPL 30.77
+saving checkpoint to out-plan-a/a-default
+iter 1500: loss 2.7110, time 3790.36ms, mfu 15.08%
+iter 1550: loss 2.7084, time 225.63ms, mfu 15.31%
+iter 1600: loss 2.6541, time 224.14ms, mfu 15.53%
+iter 1650: loss 2.6922, time 225.33ms, mfu 15.71%
+iter 1700: loss 2.6508, time 224.39ms, mfu 15.89%
+iter 1750: loss 2.6536, time 225.68ms, mfu 16.04%
+iter 1800: loss 2.6130, time 224.46ms, mfu 16.18%
+iter 1850: loss 2.5370, time 223.94ms, mfu 16.32%
+iter 1900: loss 2.5448, time 225.51ms, mfu 16.42%
+iter 1950: loss 2.6065, time 224.53ms, mfu 16.53%
+[normal] step 2000: train loss 2.2887, val loss 3.4990, PPL 33.08
+iter 2000: loss 2.4695, time 3315.14ms, mfu 14.99%
+iter 2050: loss 2.4957, time 224.16ms, mfu 15.24%
+iter 2100: loss 2.4217, time 223.98ms, mfu 15.47%
+iter 2150: loss 2.4418, time 223.93ms, mfu 15.67%
+iter 2200: loss 2.4758, time 224.33ms, mfu 15.86%
+iter 2250: loss 2.4216, time 224.12ms, mfu 16.02%
+iter 2300: loss 2.3826, time 224.08ms, mfu 16.17%
+iter 2350: loss 2.3474, time 223.86ms, mfu 16.30%
+iter 2400: loss 2.3629, time 224.75ms, mfu 16.42%
+iter 2450: loss 2.3122, time 224.28ms, mfu 16.52%
+[normal] step 2500: train loss 2.0839, val loss 3.5775, PPL 35.78
+iter 2500: loss 2.3017, time 3523.26ms, mfu 14.98%
+iter 2550: loss 2.2689, time 226.16ms, mfu 15.22%
+iter 2600: loss 2.2889, time 223.78ms, mfu 15.45%
+iter 2650: loss 2.3280, time 224.12ms, mfu 15.66%
+iter 2700: loss 2.3200, time 226.58ms, mfu 15.82%
+iter 2750: loss 2.2756, time 223.84ms, mfu 15.99%
+iter 2800: loss 2.2688, time 224.52ms, mfu 16.14%
+iter 2850: loss 2.2517, time 224.75ms, mfu 16.27%
+iter 2900: loss 2.2000, time 223.60ms, mfu 16.40%
+iter 2950: loss 2.2117, time 223.81ms, mfu 16.51%
+[normal] step 3000: train loss 1.8973, val loss 3.6785, PPL 39.59
+iter 3000: loss 2.1774, time 3522.95ms, mfu 14.97%
+iter 3050: loss 2.1892, time 224.15ms, mfu 15.22%
+iter 3100: loss 2.1802, time 222.01ms, mfu 15.47%
+iter 3150: loss 2.1949, time 223.70ms, mfu 15.67%
+iter 3200: loss 2.1740, time 224.12ms, mfu 15.86%
+iter 3250: loss 2.1704, time 223.63ms, mfu 16.02%
+iter 3300: loss 2.1871, time 224.39ms, mfu 16.17%
+iter 3350: loss 2.1580, time 225.26ms, mfu 16.29%
+iter 3400: loss 2.0764, time 225.02ms, mfu 16.41%
+iter 3450: loss 2.1017, time 223.82ms, mfu 16.52%
+[normal] step 3500: train loss 1.7568, val loss 3.7450, PPL 42.31
+iter 3500: loss 2.1199, time 3523.49ms, mfu 14.98%
+iter 3550: loss 2.0170, time 224.05ms, mfu 15.23%
+iter 3600: loss 2.0684, time 225.36ms, mfu 15.45%
+iter 3650: loss 2.1019, time 224.75ms, mfu 15.65%
+iter 3700: loss 2.0797, time 224.22ms, mfu 15.83%
+iter 3750: loss 2.0366, time 223.93ms, mfu 16.00%
+iter 3800: loss 2.0709, time 224.35ms, mfu 16.15%
+iter 3850: loss 1.9982, time 221.74ms, mfu 16.30%
+iter 3900: loss 1.9667, time 224.23ms, mfu 16.42%
+iter 3950: loss 1.9667, time 224.89ms, mfu 16.52%
+[normal] step 4000: train loss 1.6396, val loss 3.8390, PPL 46.48
+iter 4000: loss 1.9925, time 3518.80ms, mfu 14.98%
+iter 4050: loss 1.9834, time 225.28ms, mfu 15.22%
+iter 4100: loss 2.0151, time 224.41ms, mfu 15.45%
+iter 4150: loss 2.0001, time 223.83ms, mfu 15.66%
+iter 4200: loss 1.9448, time 223.40ms, mfu 15.85%
+iter 4250: loss 1.9998, time 226.36ms, mfu 16.00%
+iter 4300: loss 1.9655, time 222.69ms, mfu 16.16%
+iter 4350: loss 1.8783, time 223.07ms, mfu 16.30%
+iter 4400: loss 1.9271, time 224.26ms, mfu 16.42%
+iter 4450: loss 1.9347, time 223.48ms, mfu 16.53%
+[normal] step 4500: train loss 1.5131, val loss 3.9168, PPL 50.24
+iter 4500: loss 1.9353, time 3516.78ms, mfu 14.99%
+iter 4550: loss 1.9140, time 223.70ms, mfu 15.24%
+iter 4600: loss 1.8828, time 223.92ms, mfu 15.47%
+iter 4650: loss 1.8814, time 225.00ms, mfu 15.67%
+iter 4700: loss 1.8792, time 224.19ms, mfu 15.85%
+iter 4750: loss 1.8988, time 223.74ms, mfu 16.02%
+iter 4800: loss 1.8000, time 224.25ms, mfu 16.16%
+iter 4850: loss 1.8674, time 223.27ms, mfu 16.30%
+iter 4900: loss 1.8516, time 223.47ms, mfu 16.43%
+iter 4950: loss 1.8221, time 222.75ms, mfu 16.55%
+[normal] step 5000: train loss 1.4122, val loss 4.0063, PPL 54.95
+iter 5000: loss 1.7789, time 3517.20ms, mfu 15.00%
+iter 5050: loss 1.7503, time 224.26ms, mfu 15.25%
+iter 5100: loss 1.7683, time 223.66ms, mfu 15.48%
+iter 5150: loss 1.7796, time 225.23ms, mfu 15.67%
+iter 5200: loss 1.8287, time 224.45ms, mfu 15.85%
+iter 5250: loss 1.7485, time 223.79ms, mfu 16.02%
+iter 5300: loss 1.8085, time 223.25ms, mfu 16.18%
+iter 5350: loss 1.7975, time 223.48ms, mfu 16.31%
+iter 5400: loss 1.7671, time 223.64ms, mfu 16.44%
+iter 5450: loss 1.8163, time 222.85ms, mfu 16.55%
+[normal] step 5500: train loss 1.3088, val loss 4.0864, PPL 59.52
+iter 5500: loss 1.7267, time 3520.83ms, mfu 15.01%
+iter 5550: loss 1.7262, time 106.04ms, mfu 17.21%
+iter 5600: loss 1.7359, time 106.19ms, mfu 19.18%
+iter 5650: loss 1.7049, time 105.86ms, mfu 20.97%
+iter 5700: loss 1.7237, time 105.88ms, mfu 22.57%
+iter 5750: loss 1.7093, time 105.74ms, mfu 24.03%
+iter 5800: loss 1.7090, time 106.05ms, mfu 25.32%
+iter 5850: loss 1.6705, time 105.98ms, mfu 26.49%
+iter 5900: loss 1.7059, time 105.97ms, mfu 27.54%
+iter 5950: loss 1.6633, time 105.79ms, mfu 28.49%
+[normal] step 6000: train loss 1.2092, val loss 4.1421, PPL 62.93
+iter 6000: loss 1.6656, time 1783.28ms, mfu 25.87%
+iter 6050: loss 1.6875, time 105.99ms, mfu 26.98%
+iter 6100: loss 1.7122, time 105.98ms, mfu 27.98%
+iter 6150: loss 1.6655, time 105.89ms, mfu 28.89%
+iter 6200: loss 1.6910, time 106.01ms, mfu 29.70%
+iter 6250: loss 1.6796, time 105.86ms, mfu 30.43%
+iter 6300: loss 1.6508, time 106.00ms, mfu 31.09%
+iter 6350: loss 1.5945, time 105.97ms, mfu 31.68%
+iter 6400: loss 1.6138, time 105.87ms, mfu 32.22%
+iter 6450: loss 1.6345, time 106.20ms, mfu 32.69%
+[normal] step 6500: train loss 1.1305, val loss 4.2313, PPL 68.81
+iter 6500: loss 1.6560, time 1784.35ms, mfu 29.64%
+iter 6550: loss 1.6264, time 106.00ms, mfu 30.38%
+iter 6600: loss 1.5789, time 105.98ms, mfu 31.04%
+iter 6650: loss 1.5968, time 105.94ms, mfu 31.64%
+iter 6700: loss 1.6344, time 105.95ms, mfu 32.18%
+iter 6750: loss 1.5888, time 105.98ms, mfu 32.66%
+iter 6800: loss 1.5864, time 105.92ms, mfu 33.10%
+iter 6850: loss 1.5649, time 105.83ms, mfu 33.49%
+iter 6900: loss 1.5729, time 106.01ms, mfu 33.84%
+iter 6950: loss 1.6030, time 105.76ms, mfu 34.17%
+[normal] step 7000: train loss 1.0588, val loss 4.2934, PPL 73.22
+iter 7000: loss 1.5544, time 3540.79ms, mfu 30.86%
+iter 7050: loss 1.5456, time 226.60ms, mfu 29.51%
+iter 7100: loss 1.5936, time 227.99ms, mfu 28.28%
+iter 7150: loss 1.5261, time 226.70ms, mfu 27.18%
+iter 7200: loss 1.5441, time 227.00ms, mfu 26.19%
+iter 7250: loss 1.5431, time 226.82ms, mfu 25.30%
+iter 7300: loss 1.5006, time 227.16ms, mfu 24.49%
+iter 7350: loss 1.5159, time 226.89ms, mfu 23.77%
+iter 7400: loss 1.5547, time 228.37ms, mfu 23.11%
+iter 7450: loss 1.5120, time 219.70ms, mfu 22.59%
+[normal] step 7500: train loss 0.9967, val loss 4.3631, PPL 78.50
+iter 7500: loss 1.4975, time 3545.40ms, mfu 20.44%
+iter 7550: loss 1.5126, time 226.77ms, mfu 20.12%
+iter 7600: loss 1.5015, time 226.98ms, mfu 19.84%
+iter 7650: loss 1.4972, time 227.04ms, mfu 19.58%
+iter 7700: loss 1.5297, time 225.52ms, mfu 19.36%
+iter 7750: loss 1.5338, time 224.91ms, mfu 19.17%
+iter 7800: loss 1.5118, time 225.34ms, mfu 18.99%
+iter 7850: loss 1.4739, time 297.35ms, mfu 18.41%
+iter 7900: loss 1.5159, time 335.94ms, mfu 17.74%
+iter 7950: loss 1.4555, time 330.64ms, mfu 17.15%
+[normal] step 8000: train loss 0.9350, val loss 4.4256, PPL 83.56
+iter 8000: loss 1.5226, time 5291.92ms, mfu 15.51%
+iter 8050: loss 1.4496, time 222.86ms, mfu 15.72%
+iter 8100: loss 1.4334, time 105.97ms, mfu 17.85%
+iter 8150: loss 1.4663, time 105.95ms, mfu 19.77%
+iter 8200: loss 1.4722, time 106.04ms, mfu 21.49%
+iter 8250: loss 1.4434, time 105.98ms, mfu 23.04%
+iter 8300: loss 1.4162, time 105.98ms, mfu 24.44%
+iter 8350: loss 1.4552, time 105.93ms, mfu 25.70%
+iter 8400: loss 1.4212, time 105.98ms, mfu 26.83%
+iter 8450: loss 1.4332, time 105.95ms, mfu 27.85%
+[normal] step 8500: train loss 0.8900, val loss 4.4916, PPL 89.26
+iter 8500: loss 1.4379, time 1785.16ms, mfu 25.28%
+iter 8550: loss 1.4143, time 106.22ms, mfu 26.44%
+iter 8600: loss 1.4332, time 106.00ms, mfu 27.50%
+iter 8650: loss 1.4114, time 105.91ms, mfu 28.45%
+iter 8700: loss 1.4288, time 105.96ms, mfu 29.31%
+iter 8750: loss 1.4359, time 328.39ms, mfu 27.57%
+iter 8800: loss 1.4312, time 339.01ms, mfu 25.97%
+iter 8850: loss 1.4467, time 337.50ms, mfu 24.54%
+iter 8900: loss 1.3833, time 335.07ms, mfu 23.25%
+iter 8950: loss 1.4099, time 338.80ms, mfu 22.09%
+[normal] step 9000: train loss 0.8582, val loss 4.5178, PPL 91.63
+iter 9000: loss 1.4462, time 5166.98ms, mfu 19.95%
+iter 9050: loss 1.4070, time 335.97ms, mfu 19.13%
+iter 9100: loss 1.3775, time 339.31ms, mfu 18.37%
+iter 9150: loss 1.3835, time 337.25ms, mfu 17.69%
+iter 9200: loss 1.4183, time 335.62ms, mfu 17.09%
+iter 9250: loss 1.3825, time 329.04ms, mfu 16.58%
+iter 9300: loss 1.3701, time 338.57ms, mfu 16.08%
+iter 9350: loss 1.3817, time 336.03ms, mfu 15.64%
+iter 9400: loss 1.4352, time 338.45ms, mfu 15.23%
+iter 9450: loss 1.4014, time 338.59ms, mfu 14.87%
+[normal] step 9500: train loss 0.8330, val loss 4.5633, PPL 95.90
+iter 9500: loss 1.3919, time 5294.79ms, mfu 13.45%
+iter 9550: loss 1.3710, time 335.92ms, mfu 13.28%
+iter 9600: loss 1.3607, time 337.42ms, mfu 13.11%
+iter 9650: loss 1.3409, time 339.56ms, mfu 12.95%
+iter 9700: loss 1.4066, time 335.40ms, mfu 12.83%
+iter 9750: loss 1.4063, time 329.05ms, mfu 12.74%
+iter 9800: loss 1.3718, time 336.37ms, mfu 12.63%
+iter 9850: loss 1.3376, time 335.30ms, mfu 12.54%
+iter 9900: loss 1.3891, time 336.51ms, mfu 12.45%
+iter 9950: loss 1.3475, time 339.40ms, mfu 12.36%
+[normal] step 10000: train loss 0.8126, val loss 4.5842, PPL 97.93
+iter 10000: loss 1.3782, time 5285.77ms, mfu 11.20%
